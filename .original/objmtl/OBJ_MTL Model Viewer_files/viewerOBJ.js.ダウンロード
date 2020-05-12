@@ -1,0 +1,399 @@
+// Init file-related variables
+// that may serve even if WebGL is not supported
+var modelsPath = 'models/obj/';
+var modelName = ""
+
+// Find first argument named "model"
+var parameters = location.search.substring(1).split("&");
+for (var i=0;i<parameters.length;i++)
+{
+	var temp = parameters[i].split("=");
+	var paramName = unescape(temp[0]).toLowerCase();
+	var paramValue = unescape(temp[1]);
+	if (paramName=='model')
+	{
+		modelName = paramValue.toLowerCase();
+		break;
+	}
+}
+
+// Check if WebGL is supported by the browser
+// else display the object's fixed image
+if ( ! Detector.webgl ) {
+	Detector.addGetWebGLMessage()
+	var imageContainer = document.createElement( 'div' );
+	imageContainer.id = 'webgl-error-message';
+	imageContainer.style.fontFamily = 'monospace';
+	imageContainer.style.fontSize = '13px';
+	imageContainer.style.fontWeight = 'normal';
+	imageContainer.style.textAlign = 'center';
+	imageContainer.style.background = '#fff';
+	imageContainer.style.color = '#000';
+	imageContainer.style.padding = '1.5em';
+	imageContainer.style.width = '400px';
+	imageContainer.style.margin = '5em auto 0';
+	imageContainer.innerHTML = [
+		'<IMG SRC="'+modelsPath+modelName+'/'+modelName+'.png"><br />',
+		'Static preview of the "'+modelName+'" object'
+	].join( '\n' )
+	document.body.appendChild( imageContainer );
+};
+
+// Init variables
+var container, stats;
+var camera, scene, renderer;
+var controls;
+var windowHalfX = window.innerWidth / 2;
+var windowHalfY = window.innerHeight / 2;
+var t = 0;
+var clock = new THREE.Clock();
+
+// Main portion of the code
+init();
+animate();
+
+// Utility functions
+function labelize( text ) {
+	var parts = text.split( "." );
+	if ( parts.length > 1 ) {
+		parts.length -= 1;
+		return parts.join( "." );
+	}
+	return text;
+}
+
+// Utility functions
+function log(msg) {
+    setTimeout(function() {
+        throw new Error(msg);
+    }, 0);
+}
+
+// Utility functions
+function log10 (arg) {
+  // http://kevin.vanzonneveld.net
+  // +   original by: Philip Peterson
+  // +   improved by: Onno Marsman
+  // +   improved by: Tod Gentille
+  // +   improved by: Brett Zamir (http://brett-zamir.me)
+  // *     example 1: log10(10);
+  // *     returns 1: 1
+  // *     example 2: log10(1);
+  // *     returns 2: 0
+  return Math.log(arg) / Math.LN10
+}
+
+// Utility functions
+function boundingPowerOfTen (arg) {
+	// Check for zero value
+	if (arg==0) {
+		return 0;
+	}
+	// Extract absolute value
+	var absArg = Math.abs(arg);
+	// Compute power of ten ceiling
+	var powerOfTen = Math.ceil(log10(absArg));
+	// Convert back to the original scale by using a log10
+	var absBound = Math.exp(powerOfTen * Math.log(10));
+	if (arg>0)  {
+		return  absBound;
+	} else {
+		return -absBound;
+	}
+}
+
+
+// Create all the renderer and scene
+function init() {
+
+	// Define function to be called when the ship is loaded
+	var callbackShipLoaded = function ( event ) {
+
+		var object = event.content;
+		scene.add( object );
+
+		object.children[0].geometry.computeBoundingSphere();
+		var radius = object.children[0].geometry.boundingSphere.radius;
+		//log('Radius = ' + radius);
+
+		object.children[0].geometry.computeBoundingBox();
+		var boundingBox = object.children[0].geometry.boundingBox;
+		//log('Bounding Box : [' + boundingBox.min.x + ';' + boundingBox.min.y + ';' + boundingBox.min.z + '][' + boundingBox.max.x + ';' + boundingBox.max.y + ';' + boundingBox.max.z + ']');
+
+		// Zooms camera according to the model's bounding sphere radius
+		camera.position.x = camera.position.x * radius
+		camera.position.y = camera.position.y * radius
+		camera.position.z = camera.position.z * radius
+
+		// Grids dimensions and material
+		var size = 3, step = 1;
+		var i;
+		
+		// Draw Bounding Box
+		var boundingBoxDimensions = new THREE.Vector3
+		(
+			boundingBox.max.x-boundingBox.min.x,
+			boundingBox.max.y-boundingBox.min.y,
+			boundingBox.max.z-boundingBox.min.z
+		)
+		var boundingBoxPosition = new THREE.Vector3
+		(
+			(boundingBox.max.x+boundingBox.min.x)/2,
+			(boundingBox.max.y+boundingBox.min.y)/2,
+			(boundingBox.max.z+boundingBox.min.z)/2
+		)
+
+		// Draw Grid
+		var dimensionsPowerOfTen = new THREE.Vector3
+		(
+			boundingPowerOfTen(boundingBoxDimensions.x),
+			boundingPowerOfTen(boundingBoxDimensions.y),
+			boundingPowerOfTen(boundingBoxDimensions.z)
+		);
+		//log('Powers of Ten : [' + dimensionsPowerOfTen.x + ';' + dimensionsPowerOfTen.y + ';' + dimensionsPowerOfTen.z + ']');
+		var gridStep = dimensionsPowerOfTen.x;
+		if (gridStep > dimensionsPowerOfTen.y) {
+			gridStep = dimensionsPowerOfTen.y
+		}
+		if (gridStep > dimensionsPowerOfTen.z) {
+			gridStep = dimensionsPowerOfTen.z
+		}
+		gridStep = gridStep/10;
+		//log('Grid step : ' + gridStep);
+
+		var minGrid = new THREE.Vector3
+		(
+			Math.floor(boundingBox.min.x/gridStep),
+			Math.floor(boundingBox.min.y/gridStep),
+			Math.floor(boundingBox.min.z/gridStep)
+		);
+
+		var maxGrid = new THREE.Vector3
+		(
+			Math.ceil(boundingBox.max.x/gridStep),
+			Math.ceil(boundingBox.max.y/gridStep),
+			Math.ceil(boundingBox.max.z/gridStep)
+		);
+
+		//log('Grid : [' + minGrid.x + ';' + minGrid.y + ';' + minGrid.z + '][' + maxGrid.x + ';' + maxGrid.y + ';' + maxGrid.z + ']');
+
+		var gridDimensions = new THREE.Vector3
+		(
+			maxGrid.x-minGrid.x,
+			maxGrid.y-minGrid.y,
+			maxGrid.z-minGrid.z
+		)
+		var gridPosition = new THREE.Vector3
+		(
+			(maxGrid.x+minGrid.x)/2,
+			(maxGrid.y+minGrid.y)/2,
+			(maxGrid.z+minGrid.z)/2
+		)
+
+		var materialGrid = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.2, wireframe: true } );
+
+		// XY Grid
+		var gridPlaneXY = new THREE.Mesh( new THREE.PlaneGeometry( gridStep*gridDimensions.x, gridStep*gridDimensions.y, gridDimensions.x, gridDimensions.y ), materialGrid );
+		gridPlaneXY.position.x = gridPosition.x*gridStep;
+		gridPlaneXY.position.y = gridPosition.y*gridStep;
+		gridPlaneXY.position.z = gridPosition.z*gridStep;
+		scene.add(gridPlaneXY);
+
+		// YZ Grid
+		var gridPlaneYZ = new THREE.Mesh( new THREE.PlaneGeometry( gridStep*gridDimensions.y, gridStep*gridDimensions.z, gridDimensions.y, gridDimensions.z ), materialGrid );
+		gridPlaneYZ.rotation.y = Math.PI/2;
+		gridPlaneYZ.rotation.z = Math.PI/2;
+		gridPlaneYZ.position.x = gridPosition.x*gridStep;
+		gridPlaneYZ.position.y = gridPosition.y*gridStep;
+		gridPlaneYZ.position.z = gridPosition.z*gridStep;
+		scene.add(gridPlaneYZ);
+
+		// ZX Grid
+		var gridPlaneZX = new THREE.Mesh( new THREE.PlaneGeometry( gridStep*gridDimensions.z, gridStep*gridDimensions.x, gridDimensions.z, gridDimensions.x ), materialGrid );
+		gridPlaneZX.rotation.z = Math.PI/2;
+		gridPlaneZX.rotation.x = Math.PI/2;
+		gridPlaneZX.position.x = gridPosition.x*gridStep;
+		gridPlaneZX.position.y = gridPosition.y*gridStep;
+		gridPlaneZX.position.z = gridPosition.z*gridStep;
+		scene.add(gridPlaneZX);
+/*	*/
+
+		// Axes themselves
+		var materialAxes = new THREE.LineBasicMaterial( { color: 0xffffff, opacity: 1.0} );
+		var geometryAxes = new THREE.Geometry();
+		geometryAxes.vertices.push( new THREE.Vector3(                       0,  0,  0) );
+		geometryAxes.vertices.push( new THREE.Vector3(  (maxGrid.x+1)*gridStep,  0,  0) );
+		geometryAxes.vertices.push( new THREE.Vector3(  0,                       0,  0) );
+		geometryAxes.vertices.push( new THREE.Vector3(  0,  (maxGrid.y+1)*gridStep,  0) );
+		geometryAxes.vertices.push( new THREE.Vector3(  0,  0,                       0) );
+		geometryAxes.vertices.push( new THREE.Vector3(  0,  0,  (maxGrid.z+1)*gridStep) );
+		var lineAxes = new THREE.Line( geometryAxes, materialAxes, THREE.LinePieces );
+		scene.add( lineAxes );
+
+		// Axes Arrows
+		var arrowMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, ambient: 0xaaaaaa } );
+		var arrowGeo = new THREE.CylinderGeometry(gridStep*.02, gridStep*.1, gridStep*.5, 20, 1, false);
+		var arrowMeshX = new THREE.Mesh( arrowGeo, arrowMaterial );
+		arrowMeshX.position.x = (maxGrid.x+1)*gridStep;
+		arrowMeshX.rotation.z = -Math.PI/2;
+		scene.add( arrowMeshX );
+		var arrowMeshY = new THREE.Mesh( arrowGeo, arrowMaterial );
+		arrowMeshY.position.y = (maxGrid.y+1)*gridStep;
+		scene.add( arrowMeshY );
+		var arrowMeshZ = new THREE.Mesh( arrowGeo, arrowMaterial );
+		arrowMeshZ.position.z = (maxGrid.z+1)*gridStep;
+		arrowMeshZ.rotation.x = Math.PI/2;
+		scene.add( arrowMeshZ );
+/*	*/
+
+		// X axis marker
+		var textMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000, specular: 0xffffff, ambient: 0xaa0000 } );
+		var textGeoX = new THREE.TextGeometry( "X", {
+			size: gridStep,
+			height: gridStep*.2,
+			font: "helvetiker",
+			weight: "bold",
+			style: "normal",
+		});
+		textGeoX.computeBoundingBox();
+		var meshX = new THREE.Mesh( textGeoX, textMaterial );
+		meshX.position.x = (maxGrid.x+2)*gridStep;
+		scene.add( meshX );
+
+		// Y axis marker
+		var textGeoY = new THREE.TextGeometry( "Y", {
+			size: gridStep,
+			height: gridStep*.2,
+			font: "helvetiker",
+			weight: "bold",
+			style: "normal",
+		});
+		textGeoY.computeBoundingBox();
+		var meshY = new THREE.Mesh( textGeoY, textMaterial );
+		meshY.position.y = (maxGrid.y+2)*gridStep;
+		scene.add( meshY );
+
+		// Z axis marker
+		var textGeoZ = new THREE.TextGeometry( "Z", {
+			size: gridStep,
+			height: gridStep*.2,
+			font: "helvetiker",
+			weight: "bold",
+			style: "normal",
+		});
+		textGeoZ.computeBoundingBox();
+		var meshZ = new THREE.Mesh( textGeoZ, textMaterial );
+		meshZ.position.z = (maxGrid.z+2)*gridStep;
+		scene.add( meshZ );
+		/*	*/
+
+		// Addd camera Orbit Control only when model and everything around are loaded
+		controls = new THREE.OrbitControls( camera, renderer.domElement );
+		controls.center = new THREE.Vector3(gridPosition.x*gridStep, gridPosition.y*gridStep, gridPosition.z*gridStep)
+		controls.addEventListener( 'change', render );
+
+		// Add GUI with checkboxes for grid and wireframe
+		var guiConfig = {
+			grid: true,
+			axes: true,
+			wireframe: false
+		};
+		var guiObject = new dat.GUI();
+		guiObject.add( guiConfig, 'grid', true ).onChange( function() {
+			gridPlaneXY.visible = guiConfig.grid ;
+			gridPlaneYZ.visible = guiConfig.grid ;
+			gridPlaneZX.visible = guiConfig.grid ;
+		} );
+		guiObject.add( guiConfig, 'axes', true ).onChange( function() {
+			meshX.visible = guiConfig.axes ;
+			meshY.visible = guiConfig.axes ;
+			meshZ.visible = guiConfig.axes ;
+			arrowMeshX.visible = guiConfig.axes ;
+			arrowMeshY.visible = guiConfig.axes ;
+			arrowMeshZ.visible = guiConfig.axes ;
+			lineAxes.visible = guiConfig.axes ;
+		} );
+		guiObject.add( guiConfig, 'wireframe', false ).onChange( function() {
+			for (i=0;i<object.children.length;i++)
+			{
+				log('i = ' + i);
+				object.children[i].material.wireframe = guiConfig.wireframe;
+				guiConfig[labelize('Mesh'+i)] = guiConfig.wireframe;
+			}
+		} );
+	};
+
+	// Create div to insert the WebGL renderer
+	container = document.createElement( 'div' );
+	document.body.appendChild( container );
+
+	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 20000 );
+	camera.position.set( -2.5, 1.5, -1.5 );
+
+	// A void scene
+	scene = new THREE.Scene();
+
+	// Ambient light
+	scene.add( new THREE.AmbientLight( 0xffffff ) );
+
+	//log("Ship Name = " + modelName);
+	//log("tkalt : " + (modelName == "tkalt"));
+	//log("irali : " + (modelName == "irali"));
+	var objPath = modelsPath + modelName + '/' + modelName + '.obj';
+	var mtlPath = modelsPath + modelName + '/' + modelName + '.mtl';
+	//log("objPath = " + objPath);
+	//log("mtlPath = " + mtlPath);
+
+	// Add renderer and scene to HTML page
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	container.appendChild( renderer.domElement );
+
+	// Load the model
+	// When model is successfully loaded, the callback function will complete the scene
+	var loaderShip = new THREE.OBJMTLLoader();
+	loaderShip.addEventListener( 'load', callbackShipLoaded);
+	loaderShip.load( objPath, mtlPath);
+
+	// Add stats container
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.top = '0px';
+	container.appendChild( stats.domElement );
+
+	// Add event in case user resizes windos
+	window.addEventListener( 'resize', onWindowResize, false );
+
+}
+
+// Event when window is resized
+function onWindowResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
+}
+
+// Event called each frame
+function animate() {
+
+	var delta = clock.getDelta();
+
+	requestAnimationFrame( animate );
+	if (controls)
+	{
+		controls.update();
+	}
+	render();
+	stats.update();
+
+}
+
+// Event called each frame
+function render() {
+
+	renderer.render( scene, camera );
+
+}
