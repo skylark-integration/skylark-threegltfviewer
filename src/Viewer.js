@@ -1,21 +1,59 @@
 define([
+    "skylark-io-diskfs/read",
+    "skylark-io-diskfs/download",
     'skylark-threejs',
     'skylark-threejs-ex/utils/stats',
-    'skylark-threejs-ex/loaders/GLTFLoader',
+
+//    'skylark-threejs-ex/loaders/AMFLoader',
+//    'skylark-threejs-ex/loaders/ColladaLoader',
     'skylark-threejs-ex/loaders/DRACOLoader',
-    'skylark-threejs-ex/controls/OrbitControls',
+//    'skylark-threejs-ex/loaders/FBXLoader',
+    'skylark-threejs-ex/loaders/GLTFLoader',
+ //   'skylark-threejs-ex/loaders/KMZLoader',
+//    'skylark-threejs-ex/loaders/MD2Loader',
+    'skylark-threejs-ex/loaders/MTLLoader',
+    'skylark-threejs-ex/loaders/OBJLoader',
+//    'skylark-threejs-ex/loaders/PLYLoader',
+//    'skylark-threejs-ex/loaders/STLLoader',
+//    'skylark-threejs-ex/loaders/SVGLoader',
+    'skylark-threejs-ex/loaders/TDSLoader',
+//    'skylark-threejs-ex/loaders/VTKLoader',
+//    'skylark-threejs-ex/loaders/VRMLLoader',
+
     'skylark-threejs-ex/loaders/RGBELoader',
+
+
+    'skylark-threejs-ex/controls/OrbitControls',
     'skylark-datgui',
     "./threegltviewer",
     './environments',
     './vignettes'
 ], function (
+    readFile,
+    download,
   THREE, 
   Stats, 
-  GLTFLoader,
-  DRACOLoader, 
-  OrbitControls, 
+
+//    AMFLoader, 
+//    ColladaLoader, 
+    DRACOLoader, 
+//    FBXLoader, 
+    GLTFLoader, 
+//    KMZLoader, 
+//    MD2Loader, 
+    MTLLoader, 
+    OBJLoader, 
+//    PLYLoader, 
+//    STLLoader, 
+//    SVGLoader, 
+    TDSLoader, 
+//    VTKLoader, 
+//    VRMLLoader, 
+
   RGBELoader, 
+
+
+  OrbitControls, 
   datgui, 
   threegltviewer,
   environments, 
@@ -158,14 +196,54 @@ define([
                     }
                     return (path || '') + url;
                 });
+                
                 const loader = new GLTFLoader(manager);
                 loader.setCrossOrigin('anonymous');
                 const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('assets/draco/');
                 loader.setDRACOLoader(dracoLoader);
+                
+
+
+            
+                //const loader = new OBJLoader(manager);
                 const blobURLs = [];
+
+                /*
+                var materials;
+
+                assetMap.forEach(function(afile,aname) {
+                    if (!materials && aname.match(/\.(mtl)$/)) {
+                       materials =  readFile(afile,{
+                            asText : true
+                        }).then(function(text) {
+                            return text;
+                        });
+                    }
+                });
+                if (materials) {
+                    materials.then(mtl => {
+                            var mtlLoader = new MTLLoader(manager);
+                            mtlLoader.setPath(rootPath);
+                            loader.setMaterials(mtlLoader.parse(mtl,rootPath));
+
+
+                        loader.load(url, gltf => {
+                            const scene = gltf.scene || (gltf.scenes && gltf.scenes[0]) || gltf;
+                            const clips = gltf.animations || [];
+                            if (!scene) {
+                                throw new Error('This model contains no scene, and cannot be viewed here. However,' + ' it may contain individual 3D resources.');
+                            }
+                            this.setContent(scene, clips);
+                            //blobURLs.forEach(URL.revokeObjectURL);
+                            resolve(gltf);
+                        }, undefined, reject);
+                    });
+                    return ;
+                
+                */                
                 loader.load(url, gltf => {
-                    const scene = gltf.scene || gltf.scenes[0];
+                    const scene = gltf.scene || (gltf.scenes && gltf.scenes[0]) || gltf;
                     const clips = gltf.animations || [];
                     if (!scene) {
                         throw new Error('This model contains no scene, and cannot be viewed here. However,' + ' it may contain individual 3D resources.');
@@ -218,15 +296,15 @@ define([
                     node.material.depthWrite = !node.material.transparent;
                 }
             });
-            this.setClips(clips);
+            this.setClips(clips);  
             this.updateLights();
             this.updateGUI();
-            this.updateEnvironment();
+            this.updateEnvironment(); 
             this.updateTextureEncoding();
             this.updateDisplay();
-            window.content = this.content;
-            console.info('[glTF Viewer] THREE.Scene exported as `window.content`.');
-            this.printGraph(this.content);
+            //window.content = this.content; // TODO : edge bug? by  lwf
+            //console.info('[glTF Viewer] THREE.Scene exported as `window.content`.');
+            //this.printGraph(this.content); // TODO : edge bug? by  lwf
         }
 
         printGraph(node) {
@@ -325,9 +403,9 @@ define([
             const environment = environments.filter(entry => entry.name === this.state.environment)[0];
             this.getCubeMapTexture(environment).then(({envMap}) => {
                 if ((!envMap || !this.state.background) && this.activeCamera === this.defaultCamera) {
-                    this.scene.add(this.vignette);
+                    //this.scene.add(this.vignette); // TODO : edge bug? by  lwf
                 } else {
-                    this.scene.remove(this.vignette);
+                    //this.scene.remove(this.vignette);
                 }
                 this.scene.environment = envMap;
                 this.scene.background = this.state.background ? envMap : null;

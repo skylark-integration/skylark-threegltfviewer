@@ -55,13 +55,15 @@ define([
             let rootFile;
             let rootPath;
             Array.from(fileMap).forEach(([path, file]) => {
-                if (file.name.match(/\.(gltf|glb)$/)) {
+                //if (file.name.match(/\.(gltf|glb|3ds|obj)$/)) {
+                if (path.match(/\.(gltf|glb|3ds|obj)$/)) {
                     rootFile = file;
-                    rootPath = path.replace(file.name, '');
+                    //rootPath = path.replace(file.name, '');
+                    rootPath = "";
                 }
             });
             if (!rootFile) {
-                this.onError('No .gltf or .glb asset found.');
+                this.onError('No asset(.gltf,.glb,.3ds,.obj) found.');
             }
             this.view(rootFile, rootPath, fileMap);
         }

@@ -1,8 +1,9 @@
 define([
 	"skylark-langx-emitter",
+	"skylark-langx-async/Deferred",
 	"skylark-jszip",
 	"./threegltviewer"
-],function(Emitter,jszip,threegltviewer) {
+],function(Emitter, Deferred, jszip,threegltviewer) {
 	//import ZipLoader from 'zip-loader';
 
 	/**
@@ -197,13 +198,32 @@ define([
 	      }
 	    };
 
-	    ZipLoader.unzip(file).then((archive) => {
-	      Object.keys(archive.files).forEach((path) => {
-	        if (path.match(/\/$/)) return;
-	        const fileName = path.replace(/^.*[\\\/]/, '');
-	        fileMap.set(path, new File([archive.files[path].buffer], fileName));
-	      });
-	      this._emit('drop', {files: fileMap, archive: file});
+	    var self = this;
+
+	    jszip(file).then((zip) => {
+            var defers = [];
+
+	     	zip.forEach((path,zipEntry) => {
+	        	//if (path.match(/\/$/)) return;
+	        	//const fileName = path.replace(/^.*[\\\/]/, '');
+	        	//fileMap.set(path, new File([archive.files[path].buffer], fileName));
+	        	var d = new Deferred();
+	          	zipEntry.async("arraybuffer").then(function(data){
+	            	if (!zipEntry.dir) {
+	             		//fileMap.set(zipEntry.name,new File([data],zipEntry.name,{
+	             		//	type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		//}));
+	             		fileMap.set(zipEntry.name,new Blob([data],{
+	             			type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		}));
+	            	} 
+             		d.resolve();
+	          	});
+	          	defers.push(d.promise);
+	      	});
+	      	Deferred.all(defers).then( () =>{
+	      		this._emit('drop', {files: fileMap, archive: file});
+	      	});
 	    });
 	  }
 

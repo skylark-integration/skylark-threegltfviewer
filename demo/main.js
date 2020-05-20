@@ -185,8 +185,8 @@ requirejs.config({
             main: 'main'
          },
          {
-           name : "skylark-storages-diskfs" ,
-           location : "../node_modules/skylark-storages-diskfs/dist/uncompressed/skylark-storages-diskfs",
+           name : "skylark-io-diskfs" ,
+           location : "../node_modules/skylark-io-diskfs/dist/uncompressed/skylark-io-diskfs",
 //           location : "../../../storages/skylark-storages-diskfs/src",
             main: 'main'
          },
