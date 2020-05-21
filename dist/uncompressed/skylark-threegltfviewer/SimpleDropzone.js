@@ -1,178 +1,115 @@
 define([
 	"skylark-langx-emitter",
+	"skylark-langx-async/Deferred",
+	  "skylark-domx-velm",
+	 "skylark-domx-files",
+
+	 "skylark-domx-plugins",
+
 	"skylark-jszip",
 	"./threegltviewer"
-],function(Emitter,jszip,threegltviewer) {
+],function(
+	Emitter, 
+	Deferred, 
+	elmx,
+	files,
+	plugins,
+	jszip,
+	threegltviewer
+) {
 	//import ZipLoader from 'zip-loader';
 
 	/**
 	 * Watches an element for file drops, parses to create a filemap hierarchy,
 	 * and emits the result.
 	 */
-	class SimpleDropzone {
+	class SimpleDropzone extends plugins.Plugin {
+		get klassName() {
+	    	return "SingleUploader";
+    	} 
+
+    	get pluginName(){
+      		return "lark.singleuploader";
+    	} 
+
+		get options () {
+      		return {
+	            selectors : {
+	              picker   : ".file-picker",
+	              dropzone : ".file-dropzone",
+	              pastezone: ".file-pastezone",
+
+	              startUploads: '.start-uploads',
+	              cancelUploads: '.cancel-uploads',
+	            }
+	     	}
+		}
+
 
 	  /**
-	   * @param  {Element} el
-	   * @param  {Element} inputEl
+	   * @param  {Element} elm
+	   * @param  [options] 
 	   */
-	  constructor (el, inputEl) {
-	    this.el = el;
-	    this.inputEl = inputEl;
+	  constructor (elm, options) {
+	  	super(elm,options);
 
-	    this.listeners = {
-	      drop: [],
-	      dropstart: [],
-	      droperror: []
-	    };
+        this._velm = elmx(this._elm);
 
-	    this._onDragover = this._onDragover.bind(this);
-	    this._onDrop = this._onDrop.bind(this);
-	    this._onSelect = this._onSelect.bind(this);
+	  	this._initFileHandlers();
 
-	    el.addEventListener('dragover', this._onDragover, false);
-	    el.addEventListener('drop', this._onDrop, false);
-	    inputEl.addEventListener('change', this._onSelect);
-	  }
+	}
 
-	  /**
-	   * @param  {string}   type
-	   * @param  {Function} callback
-	   * @return {SimpleDropzone}
-	   */
-	  on (type, callback) {
-	    this.listeners[type].push(callback);
-	    return this;
-	  }
+    _initFileHandlers () {
+        var self = this;
 
-	  /**
-	   * @param  {string} type
-	   * @param  {Object} data
-	   * @return {SimpleDropzone}
-	   */
-	  _emit (type, data) {
-	    this.listeners[type]
-	      .forEach((callback) => callback(data));
-	    return this;
-	  }
+        var selectors = this.options.selectors,
+        	dzSelector = selectors.dropzone,
+        	pzSelector = selectors.pastezone,
+        	pkSelector = selectors.picker;
+
+        if (dzSelector) {
+			this._velm.$(dzSelector).dropzone({
+                dropped : function (files) {
+                    self._addFile(files[0]);
+                }
+			});
+        }
+
+
+        if (pzSelector) {
+            this._velm.$(pzSelector).pastezone({
+                pasted : function (files) {
+                    self._addFile(files[0]);
+                }
+            });                
+        }
+
+        if (pkSelector) {
+            this._velm.$(pkSelector).picker({
+                multiple: true,
+                picked : function (files) {
+                    self._addFile(files[0]);
+                }
+            });                
+        }
+    }
+
+     _addFile(file) {
+	    if (this._isZip(file)) {
+	      this._loadZip(file);
+	    } else {
+	        this.emit('drop', {files: new Map([[file.name, file]])});	    	
+	    } 
+
+     }
+
 
 	  /**
 	   * Destroys the instance.
 	   */
 	  destroy () {
-	    const el = this.el;
-	    const inputEl = this.inputEl;
-
-	    el.removeEventListener(this._onDragover);
-	    el.removeEventListener(this._onDrop);
-	    inputEl.removeEventListener(this._onSelect);
-
-	    delete this.el;
-	    delete this.inputEl;
-	    delete this.listeners;
 	  }
 
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onDrop (e) {
-	    e.stopPropagation();
-	    e.preventDefault();
-
-	    this._emit('dropstart');
-
-	    let entries;
-	    if (e.dataTransfer.items) {
-	      entries = [].slice.call(e.dataTransfer.items)
-	        .map((item) => item.webkitGetAsEntry());
-	    } else if ((e.dataTransfer.files||[]).length === 1) {
-	      const file = e.dataTransfer.files[0];
-	      if (this._isZip(file)) {
-	        this._loadZip(file);
-	        return;
-	      } else {
-	        this._emit('drop', {files: new Map([[file.name, file]])});
-	        return;
-	      }
-	    }
-
-	    if (!entries) {
-	      this._fail('Required drag-and-drop APIs are not supported in this browser.');
-	    }
-
-	    if (entries.length === 1 && entries[0].name.match(/\.zip$/)) {
-	      entries[0].file((file) => this._loadZip(file));
-	    } else {
-	      this._loadNextEntry(new Map(), entries);
-	    }
-	  }
-
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onDragover (e) {
-	    e.stopPropagation();
-	    e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
-	  }
-
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onSelect (e) {
-	    this._emit('dropstart');
-
-	    // HTML file inputs do not seem to support folders, so assume this is a flat file list.
-	    const files = [].slice.call(this.inputEl.files);
-
-	    // Automatically decompress a zip archive if it is the only file given.
-	    if (files.length === 1 && this._isZip(files[0])) {
-	      this._loadZip(files[0]);
-	      return;
-	    }
-
-	    const fileMap = new Map();
-	    files.forEach((file) => fileMap.set(file.name, file));
-	    this._emit('drop', {files: fileMap});
-	  }
-
-	  /**
-	   * Iterates through a list of FileSystemEntry objects, creates the fileMap
-	   * tree, and emits the result.
-	   * @param  {Map<string, File>} fileMap
-	   * @param  {Array<FileSystemEntry>} entries
-	   */
-	  _loadNextEntry (fileMap, entries) {
-	    const entry = entries.pop();
-
-	    if (!entry) {
-	      this._emit('drop', {files: fileMap});
-	      return;
-	    }
-
-	    if (entry.isFile) {
-	      entry.file((file) => {
-	        fileMap.set(entry.fullPath, file);
-	        this._loadNextEntry(fileMap, entries);
-	      }, () => console.error('Could not load file: %s', entry.fullPath));
-	    } else if (entry.isDirectory) {
-	      // readEntries() must be called repeatedly until it stops returning results.
-	      // https://www.w3.org/TR/2012/WD-file-system-api-20120417/#the-directoryreader-interface
-	      // https://bugs.chromium.org/p/chromium/issues/detail?id=378883
-	      const reader = entry.createReader();
-	      const readerCallback = (newEntries) => {
-	        if (newEntries.length) {
-	          entries = entries.concat(newEntries);
-	          reader.readEntries(readerCallback);
-	        } else {
-	          this._loadNextEntry(fileMap, entries);
-	        }
-	      };
-	      reader.readEntries(readerCallback);
-	    } else {
-	      console.warn('Unknown asset type: ' + entry.fullPath);
-	      this._loadNextEntry(fileMap, entries);
-	    }
-	  }
 
 	  /**
 	   * Inflates a File in .ZIP format, creates the fileMap tree, and emits the
@@ -197,13 +134,32 @@ define([
 	      }
 	    };
 
-	    ZipLoader.unzip(file).then((archive) => {
-	      Object.keys(archive.files).forEach((path) => {
-	        if (path.match(/\/$/)) return;
-	        const fileName = path.replace(/^.*[\\\/]/, '');
-	        fileMap.set(path, new File([archive.files[path].buffer], fileName));
-	      });
-	      this._emit('drop', {files: fileMap, archive: file});
+	    var self = this;
+
+	    jszip(file).then((zip) => {
+            var defers = [];
+
+	     	zip.forEach((path,zipEntry) => {
+	        	//if (path.match(/\/$/)) return;
+	        	//const fileName = path.replace(/^.*[\\\/]/, '');
+	        	//fileMap.set(path, new File([archive.files[path].buffer], fileName));
+	        	var d = new Deferred();
+	          	zipEntry.async("arraybuffer").then(function(data){
+	            	if (!zipEntry.dir) {
+	             		//fileMap.set(zipEntry.name,new File([data],zipEntry.name,{
+	             		//	type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		//}));
+	             		fileMap.set(zipEntry.name,new Blob([data],{
+	             			type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		}));
+	            	} 
+             		d.resolve();
+	          	});
+	          	defers.push(d.promise);
+	      	});
+	      	Deferred.all(defers).then( () =>{
+	      		this.emit('drop', {files: fileMap, archive: file});
+	      	});
 	    });
 	  }
 
@@ -220,7 +176,7 @@ define([
 	   * @throws
 	   */
 	  _fail (message) {
-	    this._emit('droperror', {message: message});
+	    this.emit('droperror', {message: message});
 	  }
 	}
 

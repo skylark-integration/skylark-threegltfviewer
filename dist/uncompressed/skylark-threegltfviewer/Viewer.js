@@ -158,9 +158,9 @@ define([
                     }
                     return (path || '') + url;
                 });
-                const loader = new b.GLTFLoader(manager);
+                const loader = new GLTFLoader(manager);
                 loader.setCrossOrigin('anonymous');
-                const dracoLoader = new c.DRACOLoader();
+                const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('assets/draco/');
                 loader.setDRACOLoader(dracoLoader);
                 const blobURLs = [];
@@ -322,7 +322,7 @@ define([
         }
 
         updateEnvironment() {
-            const environment = g.environments.filter(entry => entry.name === this.state.environment)[0];
+            const environment = environments.filter(entry => entry.name === this.state.environment)[0];
             this.getCubeMapTexture(environment).then(({envMap}) => {
                 if ((!envMap || !this.state.background) && this.activeCamera === this.defaultCamera) {
                     this.scene.add(this.vignette);
@@ -339,7 +339,7 @@ define([
             if (!path)
                 return Promise.resolve({ envMap: null });
             return new Promise((resolve, reject) => {
-                new e.RGBELoader().setDataType(THREE.UnsignedByteType).load(path, texture => {
+                new RGBELoader().setDataType(THREE.UnsignedByteType).load(path, texture => {
                     const envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
                     this.pmremGenerator.dispose();
                     resolve({ envMap });
@@ -407,7 +407,7 @@ define([
         }
 
         addGUI() {
-            const gui = this.gui = new datgui({
+            const gui = this.gui = new datgui.GUI({
                 autoPlace: false,
                 width: 260,
                 hideable: true
@@ -442,7 +442,7 @@ define([
                     material.needsUpdate = true;
                 });
             });
-            const envMapCtrl = lightFolder.add(this.state, 'environment', g.environments.map(env => env.name));
+            const envMapCtrl = lightFolder.add(this.state, 'environment', environments.map(env => env.name));
             envMapCtrl.onChange(() => this.updateEnvironment());
             [
                 lightFolder.add(this.state, 'exposure', 0, 2),
@@ -570,5 +570,5 @@ define([
         });
     }
 
-    return Viewer;
+    return threegltviewer.Viewer = Viewer;
 });

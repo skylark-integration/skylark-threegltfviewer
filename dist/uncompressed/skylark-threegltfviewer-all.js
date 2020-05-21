@@ -36454,7 +36454,8 @@ define('skylark-threejs/three',[], function () {
 
 			}
 
-			var image = document.createElementNS( 'http://www.w3.org/1999/xhtml', 'img' );
+			//var image = document.createElementNS( 'http://www.w3.org/1999/xhtml', 'img' );
+			var image = new Image();
 
 			function onImageLoad() {
 
@@ -36484,7 +36485,7 @@ define('skylark-threejs/three',[], function () {
 			image.addEventListener( 'load', onImageLoad, false );
 			image.addEventListener( 'error', onImageError, false );
 
-			if ( url.substr( 0, 5 ) !== 'data:' ) {
+			if ( url.substr( 0, 5 ) !== 'data:'  && url.substr( 0, 5 ) !== 'blob:') {
 
 				if ( this.crossOrigin !== undefined ) { image.crossOrigin = this.crossOrigin; }
 
@@ -54473,7 +54474,7 @@ define('skylark-langx-objects/objects',[
         return keys;
     }
 
-    function each(obj, callback) {
+    function each(obj, callback,isForEach) {
         var length, key, i, undef, value;
 
         if (obj) {
@@ -54484,7 +54485,7 @@ define('skylark-langx-objects/objects',[
                 for (key in obj) {
                     if (obj.hasOwnProperty(key)) {
                         value = obj[key];
-                        if (callback.call(value, key, value) === false) {
+                        if ((isForEach ? callback.call(value, value, key) : callback.call(value, key, value) ) === false) {
                             break;
                         }
                     }
@@ -54493,7 +54494,7 @@ define('skylark-langx-objects/objects',[
                 // Loop array items
                 for (i = 0; i < length; i++) {
                     value = obj[i];
-                    if (callback.call(value, i, value) === false) {
+                    if ((isForEach ? callback.call(value, value, i) : callback.call(value, i, value) )=== false) {
                         break;
                     }
                 }
@@ -60566,12 +60567,12 @@ define('skylark-domx-styler/styler',[
         var self = this;
         name.split(/\s+/g).forEach(function(klass) {
             if (when === undefined) {
-                when = !self.hasClass(elm, klass);
+                when = !hasClass(elm, klass);
             }
             if (when) {
-                self.addClass(elm, klass);
+                addClass(elm, klass);
             } else {
-                self.removeClass(elm, klass)
+                removeClass(elm, klass)
             }
         });
 
@@ -67472,9 +67473,9 @@ define('skylark-threegltfviewer/Viewer',[
                     }
                     return (path || '') + url;
                 });
-                const loader = new b.GLTFLoader(manager);
+                const loader = new GLTFLoader(manager);
                 loader.setCrossOrigin('anonymous');
-                const dracoLoader = new c.DRACOLoader();
+                const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('assets/draco/');
                 loader.setDRACOLoader(dracoLoader);
                 const blobURLs = [];
@@ -67636,7 +67637,7 @@ define('skylark-threegltfviewer/Viewer',[
         }
 
         updateEnvironment() {
-            const environment = g.environments.filter(entry => entry.name === this.state.environment)[0];
+            const environment = environments.filter(entry => entry.name === this.state.environment)[0];
             this.getCubeMapTexture(environment).then(({envMap}) => {
                 if ((!envMap || !this.state.background) && this.activeCamera === this.defaultCamera) {
                     this.scene.add(this.vignette);
@@ -67653,7 +67654,7 @@ define('skylark-threegltfviewer/Viewer',[
             if (!path)
                 return Promise.resolve({ envMap: null });
             return new Promise((resolve, reject) => {
-                new e.RGBELoader().setDataType(THREE.UnsignedByteType).load(path, texture => {
+                new RGBELoader().setDataType(THREE.UnsignedByteType).load(path, texture => {
                     const envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
                     this.pmremGenerator.dispose();
                     resolve({ envMap });
@@ -67721,7 +67722,7 @@ define('skylark-threegltfviewer/Viewer',[
         }
 
         addGUI() {
-            const gui = this.gui = new datgui({
+            const gui = this.gui = new datgui.GUI({
                 autoPlace: false,
                 width: 260,
                 hideable: true
@@ -67756,7 +67757,7 @@ define('skylark-threegltfviewer/Viewer',[
                     material.needsUpdate = true;
                 });
             });
-            const envMapCtrl = lightFolder.add(this.state, 'environment', g.environments.map(env => env.name));
+            const envMapCtrl = lightFolder.add(this.state, 'environment', environments.map(env => env.name));
             envMapCtrl.onChange(() => this.updateEnvironment());
             [
                 lightFolder.add(this.state, 'exposure', 0, 2),
@@ -67884,8 +67885,2417 @@ define('skylark-threegltfviewer/Viewer',[
         });
     }
 
-    return Viewer;
+    return threegltviewer.Viewer = Viewer;
 });
+define('skylark-domx-files/files',[
+    "skylark-langx/skylark"
+], function(skylark) {
+
+    function dataURLtoBlob(dataurl) {
+        var arr = dataurl.split(','),
+            mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]),
+            n = bstr.length,
+            u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+    }
+
+
+    var files = function() {
+        return files;
+    };
+
+    return skylark.attach("domx.files", files);
+});
+define('skylark-io-diskfs/diskfs',[
+    "skylark-langx/skylark"
+], function(skylark) {
+
+    function dataURLtoBlob(dataurl) {
+        var arr = dataurl.split(','),
+            mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]),
+            n = bstr.length,
+            u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+    }
+
+
+    var diskfs = function() {
+        return diskfs;
+    };
+
+    return skylark.attach("storages.diskfs", diskfs);
+});
+ define('skylark-io-diskfs/webentry',[
+    "skylark-langx/arrays",
+    "skylark-langx/Deferred",
+    "./diskfs"
+],function(arrays,Deferred, diskfs){
+    var concat = Array.prototype.concat;
+    var webentry = (function() {
+        function one(entry, path) {
+            var d = new Deferred(),
+                onError = function(e) {
+                    d.reject(e);
+                };
+
+            path = path || '';
+            if (entry.isFile) {
+                entry.file(function(file) {
+                    file.relativePath = path;
+                    d.resolve(file);
+                }, onError);
+            } else if (entry.isDirectory) {
+                var dirReader = entry.createReader();
+                dirReader.readEntries(function(entries) {
+                    all(
+                        entries,
+                        path + entry.name + '/'
+                    ).then(function(files) {
+                        d.resolve(files);
+                    }).catch(onError);
+                }, onError);
+            } else {
+                // Return an empy list for file system items
+                // other than files or directories:
+                d.resolve([]);
+            }
+            return d.promise;
+        }
+
+        function all(entries, path) {
+            return Deferred.all(
+                arrays.map(entries, function(entry) {
+                    return one(entry, path);
+                })
+            ).then(function() {
+                return concat.apply([], arguments);
+            });
+        }
+
+        return {
+            one: one,
+            all: all
+        };
+    })();
+
+    return diskfs.webentry = webentry;
+});
+  define('skylark-domx-files/dropzone',[
+    "skylark-langx/arrays",
+    "skylark-langx/Deferred",
+    "skylark-domx-styler",
+    "skylark-domx-eventer",
+    "./files",
+    "skylark-io-diskfs/webentry"
+],function(arrays,Deferred, styler, eventer, files, webentry){  /*
+     * Make the specified element to could accept HTML5 file drag and drop.
+     * @param {HTMLElement} elm
+     * @param {PlainObject} params
+     */
+    function dropzone(elm, params) {
+        params = params || {};
+        var hoverClass = params.hoverClass || "dropzone",
+            droppedCallback = params.dropped;
+
+        var enterdCount = 0;
+        eventer.on(elm, "dragenter", function(e) {
+            if (e.dataTransfer && e.dataTransfer.types.indexOf("Files") > -1) {
+                eventer.stop(e);
+                enterdCount++;
+                styler.addClass(elm, hoverClass)
+            }
+        });
+
+        eventer.on(elm, "dragover", function(e) {
+            if (e.dataTransfer && e.dataTransfer.types.indexOf("Files") > -1) {
+                eventer.stop(e);
+            }
+        });
+
+        eventer.on(elm, "dragleave", function(e) {
+            if (e.dataTransfer && e.dataTransfer.types.indexOf("Files") > -1) {
+                enterdCount--
+                if (enterdCount == 0) {
+                    styler.removeClass(elm, hoverClass);
+                }
+            }
+        });
+
+        eventer.on(elm, "drop", function(e) {
+            if (e.dataTransfer && e.dataTransfer.types.indexOf("Files") > -1) {
+                styler.removeClass(elm, hoverClass)
+                eventer.stop(e);
+                if (droppedCallback) {
+                    var items = e.dataTransfer.items;
+                    if (items && items.length && (items[0].webkitGetAsEntry ||
+                            items[0].getAsEntry)) {
+                        webentry.all(
+                            arrays.map(items, function(item) {
+                                if (item.webkitGetAsEntry) {
+                                    return item.webkitGetAsEntry();
+                                }
+                                return item.getAsEntry();
+                            })
+                        ).then(droppedCallback);
+                    } else {
+                        droppedCallback(e.dataTransfer.files);
+                    }
+                }
+            }
+        });
+
+        return this;
+    }
+
+     return files.dropzone = dropzone;
+});
+define('skylark-domx-files/pastezone',[
+    "skylark-langx/objects",
+    "skylark-domx-eventer",
+    "./files"
+],function(objects, eventer, files){
+    function pastezone(elm, params) {
+        params = params || {};
+        var hoverClass = params.hoverClass || "pastezone",
+            pastedCallback = params.pasted;
+
+        eventer.on(elm, "paste", function(e) {
+            var items = e.originalEvent && e.originalEvent.clipboardData &&
+                e.originalEvent.clipboardData.items,
+                files = [];
+            if (items && items.length) {
+                objects.each(items, function(index, item) {
+                    var file = item.getAsFile && item.getAsFile();
+                    if (file) {
+                        files.push(file);
+                    }
+                });
+            }
+            if (pastedCallback && files.length) {
+                pastedCallback(files);
+            }
+        });
+
+        return this;
+    }
+
+    return files.pastezone = pastezone;
+
+});
+
+define('skylark-io-diskfs/select',[
+    "./diskfs"
+],function(diskfs){
+    var fileInput,
+        fileInputForm,
+        fileSelected,
+        maxFileSize = 1 / 0;
+
+    function select(params) {
+        params = params || {};
+        var directory = params.directory || false,
+            multiple = params.multiple || false,
+            accept = params.accept || "", //'image/gif,image/jpeg,image/jpg,image/png,image/svg'
+            title = params.title || "",
+            fileSelected = params.picked;
+        if (!fileInput) {
+            var input = fileInput = document.createElement("input");
+
+            function selectFiles(pickedFiles) {
+                for (var i = pickedFiles.length; i--;) {
+                    if (pickedFiles[i].size > maxFileSize) {
+                        pickedFiles.splice(i, 1);
+                    }
+                }
+                fileSelected(pickedFiles);
+            }
+
+            input.type = "file";
+            input.style.position = "fixed";
+            input.style.left = 0;
+            input.style.top = 0;
+            input.style.opacity = .001;
+            document.body.appendChild(input);
+
+            input.onchange = function(e) {
+                var entries = e.target.webkitEntries || e.target.entries;
+
+                if (entries && entries.length) {
+                    webentry.all(entries).then(function(files) {
+                        selectFiles(files);
+                    });
+                } else {
+                    selectFiles(Array.prototype.slice.call(e.target.files));
+                }
+                // reset to "", so selecting the same file next time still trigger the change handler
+                input.value = "";
+            };
+        }
+        fileInput.multiple = multiple;
+        fileInput.accept = accept;
+        fileInput.title = title;
+
+        fileInput.webkitdirectory = directory;
+        fileInput.click();
+    }
+
+    return diskfs.select = select;
+});
+
+
+define('skylark-domx-files/picker',[
+    "skylark-langx/objects",
+    "skylark-domx-eventer",
+    "./files",
+    "skylark-io-diskfs/select"
+],function(objects, eventer, files, select){
+    /*
+     * Make the specified element to pop-up the file selection dialog box when clicked , and read the contents the files selected from client file system by user.
+     * @param {HTMLElement} elm
+     * @param {PlainObject} params
+     */
+    function picker(elm, params) {
+        eventer.on(elm, "click", function(e) {
+            e.preventDefault();
+            select(params);
+        });
+        return this;
+    }
+
+    return files.picker = picker;
+
+});
+
+
+
+define('skylark-net-http/http',[
+  "skylark-langx-ns/ns",
+],function(skylark){
+	return skylark.attach("net.http",{});
+});
+define('skylark-net-http/Xhr',[
+  "skylark-langx-ns/ns",
+  "skylark-langx-types",
+  "skylark-langx-objects",
+  "skylark-langx-arrays",
+  "skylark-langx-funcs",
+  "skylark-langx-async/Deferred",
+  "skylark-langx-emitter/Evented",
+  "./http"
+],function(skylark,types,objects,arrays,funcs,Deferred,Evented,http){
+
+    var each = objects.each,
+        mixin = objects.mixin,
+        noop = funcs.noop,
+        isArray = types.isArray,
+        isFunction = types.isFunction,
+        isPlainObject = types.isPlainObject,
+        type = types.type;
+ 
+     var getAbsoluteUrl = (function() {
+        var a;
+
+        return function(url) {
+            if (!a) a = document.createElement('a');
+            a.href = url;
+
+            return a.href;
+        };
+    })();
+   
+    var Xhr = (function(){
+        var jsonpID = 0,
+            key,
+            name,
+            rscript = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+            scriptTypeRE = /^(?:text|application)\/javascript/i,
+            xmlTypeRE = /^(?:text|application)\/xml/i,
+            jsonType = 'application/json',
+            htmlType = 'text/html',
+            blankRE = /^\s*$/;
+
+        var XhrDefaultOptions = {
+            async: true,
+
+            // Default type of request
+            type: 'GET',
+            // Callback that is executed before request
+            beforeSend: noop,
+            // Callback that is executed if the request succeeds
+            success: noop,
+            // Callback that is executed the the server drops error
+            error: noop,
+            // Callback that is executed on request complete (both: error and success)
+            complete: noop,
+            // The context for the callbacks
+            context: null,
+            // Whether to trigger "global" Ajax events
+            global: true,
+
+            // MIME types mapping
+            // IIS returns Javascript as "application/x-javascript"
+            accepts: {
+                script: 'text/javascript, application/javascript, application/x-javascript',
+                json: 'application/json',
+                xml: 'application/xml, text/xml',
+                html: 'text/html',
+                text: 'text/plain'
+            },
+            // Whether the request is to another domain
+            crossDomain: false,
+            // Default timeout
+            timeout: 0,
+            // Whether data should be serialized to string
+            processData: false,
+            // Whether the browser should be allowed to cache GET responses
+            cache: true,
+
+            traditional : false,
+            
+            xhrFields : {
+                withCredentials : false
+            }
+        };
+
+        function mimeToDataType(mime) {
+            if (mime) {
+                mime = mime.split(';', 2)[0];
+            }
+            if (mime) {
+                if (mime == htmlType) {
+                    return "html";
+                } else if (mime == jsonType) {
+                    return "json";
+                } else if (scriptTypeRE.test(mime)) {
+                    return "script";
+                } else if (xmlTypeRE.test(mime)) {
+                    return "xml";
+                }
+            }
+            return "text";
+        }
+
+        function appendQuery(url, query) {
+            if (query == '') return url
+            return (url + '&' + query).replace(/[&?]{1,2}/, '?')
+        }
+
+        // serialize payload and append it to the URL for GET requests
+        function serializeData(options) {
+            options.data = options.data || options.query;
+            if (options.processData && options.data && type(options.data) != "string") {
+                options.data = param(options.data, options.traditional);
+            }
+            if (options.data && (!options.type || options.type.toUpperCase() == 'GET')) {
+                if (type(options.data) != "string") {
+                    options.data = param(options.data, options.traditional);
+                }
+                options.url = appendQuery(options.url, options.data);
+                options.data = undefined;
+            }
+        }
+        
+        function serialize(params, obj, traditional, scope) {
+            var t, array = isArray(obj),
+                hash = isPlainObject(obj)
+            each(obj, function(key, value) {
+                t =type(value);
+                if (scope) key = traditional ? scope :
+                    scope + '[' + (hash || t == 'object' || t == 'array' ? key : '') + ']'
+                // handle data in serializeArray() format
+                if (!scope && array) params.add(value.name, value.value)
+                // recurse into nested objects
+                else if (t == "array" || (!traditional && t == "object"))
+                    serialize(params, value, traditional, key)
+                else params.add(key, value)
+            })
+        }
+
+        var param = function(obj, traditional) {
+            var params = []
+            params.add = function(key, value) {
+                if (isFunction(value)) {
+                  value = value();
+                }
+                if (value == null) {
+                  value = "";
+                }
+                this.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+            };
+            serialize(params, obj, traditional)
+            return params.join('&').replace(/%20/g, '+')
+        };
+
+        var Xhr = Evented.inherit({
+            klassName : "Xhr",
+
+            _request  : function(args) {
+                var _ = this._,
+                    self = this,
+                    options = mixin({},XhrDefaultOptions,_.options,args),
+                    xhr = _.xhr = new XMLHttpRequest();
+
+                serializeData(options)
+
+                if (options.beforeSend) {
+                    options.beforeSend.call(this, xhr, options);
+                }                
+
+                var dataType = options.dataType || options.handleAs,
+                    mime = options.mimeType || options.accepts[dataType],
+                    headers = options.headers,
+                    xhrFields = options.xhrFields,
+                    isFormData = options.data && options.data instanceof FormData,
+                    basicAuthorizationToken = options.basicAuthorizationToken,
+                    type = options.type,
+                    url = options.url,
+                    async = options.async,
+                    user = options.user , 
+                    password = options.password,
+                    deferred = new Deferred(),
+                    contentType = options.contentType || (isFormData ? false : 'application/x-www-form-urlencoded');
+
+                if (xhrFields) {
+                    for (name in xhrFields) {
+                        xhr[name] = xhrFields[name];
+                    }
+                }
+
+                if (mime && mime.indexOf(',') > -1) {
+                    mime = mime.split(',', 2)[0];
+                }
+                if (mime && xhr.overrideMimeType) {
+                    xhr.overrideMimeType(mime);
+                }
+
+                //if (dataType) {
+                //    xhr.responseType = dataType;
+                //}
+
+                var finish = function() {
+                    xhr.onloadend = noop;
+                    xhr.onabort = noop;
+                    xhr.onprogress = noop;
+                    xhr.ontimeout = noop;
+                    xhr = null;
+                }
+                var onloadend = function() {
+                    var result, error = false
+                    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304 || (xhr.status == 0 && getAbsoluteUrl(url).startsWith('file:'))) {
+                        dataType = dataType || mimeToDataType(options.mimeType || xhr.getResponseHeader('content-type'));
+
+                        result = xhr.responseText;
+                        try {
+                            if (dataType == 'script') {
+                                eval(result);
+                            } else if (dataType == 'xml') {
+                                result = xhr.responseXML;
+                            } else if (dataType == 'json') {
+                                result = blankRE.test(result) ? null : JSON.parse(result);
+                            } else if (dataType == "blob") {
+                                result = Blob([xhrObj.response]);
+                            } else if (dataType == "arraybuffer") {
+                                result = xhr.reponse;
+                            }
+                        } catch (e) { 
+                            error = e;
+                        }
+
+                        if (error) {
+                            deferred.reject(error,xhr.status,xhr);
+                        } else {
+                            deferred.resolve(result,xhr.status,xhr);
+                        }
+                    } else {
+                        deferred.reject(new Error(xhr.statusText),xhr.status,xhr);
+                    }
+                    finish();
+                };
+
+                var onabort = function() {
+                    if (deferred) {
+                        deferred.reject(new Error("abort"),xhr.status,xhr);
+                    }
+                    finish();                 
+                }
+ 
+                var ontimeout = function() {
+                    if (deferred) {
+                        deferred.reject(new Error("timeout"),xhr.status,xhr);
+                    }
+                    finish();                 
+                }
+
+                var onprogress = function(evt) {
+                    if (deferred) {
+                        deferred.notify(evt,xhr.status,xhr);
+                    }
+                }
+
+                xhr.onloadend = onloadend;
+                xhr.onabort = onabort;
+                xhr.ontimeout = ontimeout;
+                xhr.onprogress = onprogress;
+
+                xhr.open(type, url, async, user, password);
+               
+                if (headers) {
+                    for ( var key in headers) {
+                        var value = headers[key];
+ 
+                        if(key.toLowerCase() === 'content-type'){
+                            contentType = value;
+                        } else {
+                           xhr.setRequestHeader(key, value);
+                        }
+                    }
+                }   
+
+                if  (contentType && contentType !== false){
+                    xhr.setRequestHeader('Content-Type', contentType);
+                }
+
+                if(!headers || !('X-Requested-With' in headers)){
+                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                }
+
+
+                //If basicAuthorizationToken is defined set its value into "Authorization" header
+                if (basicAuthorizationToken) {
+                    xhr.setRequestHeader("Authorization", basicAuthorizationToken);
+                }
+
+                xhr.send(options.data ? options.data : null);
+
+                return deferred.promise;
+
+            },
+
+            "abort": function() {
+                var _ = this._,
+                    xhr = _.xhr;
+
+                if (xhr) {
+                    xhr.abort();
+                }    
+            },
+
+
+            "request": function(args) {
+                return this._request(args);
+            },
+
+            get : function(args) {
+                args = args || {};
+                args.type = "GET";
+                return this._request(args);
+            },
+
+            post : function(args) {
+                args = args || {};
+                args.type = "POST";
+                return this._request(args);
+            },
+
+            patch : function(args) {
+                args = args || {};
+                args.type = "PATCH";
+                return this._request(args);
+            },
+
+            put : function(args) {
+                args = args || {};
+                args.type = "PUT";
+                return this._request(args);
+            },
+
+            del : function(args) {
+                args = args || {};
+                args.type = "DELETE";
+                return this._request(args);
+            },
+
+            "init": function(options) {
+                this._ = {
+                    options : options || {}
+                };
+            }
+        });
+
+        ["request","get","post","put","del","patch"].forEach(function(name){
+            Xhr[name] = function(url,args) {
+                var xhr = new Xhr({"url" : url});
+                return xhr[name](args);
+            };
+        });
+
+        Xhr.defaultOptions = XhrDefaultOptions;
+        Xhr.param = param;
+
+        return Xhr;
+    })();
+
+	return http.Xhr = Xhr;	
+});
+define('skylark-net-http/Upload',[
+    "skylark-langx-types",
+    "skylark-langx-objects",
+    "skylark-langx-arrays",
+    "skylark-langx-async/Deferred",
+    "skylark-langx-emitter/Evented",    
+    "./Xhr",
+    "./http"
+],function(types, objects, arrays, Deferred, Evented,Xhr, http){
+
+    var blobSlice = Blob.prototype.slice || Blob.prototype.webkitSlice || Blob.prototype.mozSlice;
+
+
+    /*
+     *Class for uploading files using xhr.
+     */
+    var Upload = Evented.inherit({
+        klassName : "Upload",
+
+        _construct : function(options) {
+            this._options = objects.mixin({
+                debug: false,
+                url: '/upload',
+                // maximum number of concurrent uploads
+                maxConnections: 999,
+                // To upload large files in smaller chunks, set the following option
+                // to a preferred maximum chunk size. If set to 0, null or undefined,
+                // or the browser does not support the required Blob API, files will
+                // be uploaded as a whole.
+                maxChunkSize: undefined,
+
+                onProgress: function(id, fileName, loaded, total){
+                },
+                onComplete: function(id, fileName){
+                },
+                onCancel: function(id, fileName){
+                },
+                onFailure : function(id,fileName,e) {                    
+                }
+            },options);
+
+            this._queue = [];
+            // params for files in queue
+            this._params = [];
+
+            this._files = [];
+            this._xhrs = [];
+
+            // current loaded size in bytes for each file
+            this._loaded = [];
+
+        },
+
+        /**
+         * Adds file to the queue
+         * Returns id to use with upload, cancel
+         **/
+        add: function(file){
+            return this._files.push(file) - 1;
+        },
+
+        /**
+         * Sends the file identified by id and additional query params to the server.
+         */
+        send: function(id, params){
+            if (!this._files[id]) {
+                // Already sended or canceled
+                return ;
+            }
+            if (this._queue.indexOf(id)>-1) {
+                // Already in the queue
+                return;
+            }
+            var len = this._queue.push(id);
+
+            var copy = objects.clone(params);
+
+            this._params[id] = copy;
+
+            // if too many active uploads, wait...
+            if (len <= this._options.maxConnections){
+                this._send(id, this._params[id]);
+            }     
+        },
+
+        /**
+         * Sends all files  and additional query params to the server.
+         */
+        sendAll: function(params){
+           for( var id = 0; id <this._files.length; id++) {
+                this.send(id,params);
+            }
+        },
+
+        /**
+         * Cancels file upload by id
+         */
+        cancel: function(id){
+            this._cancel(id);
+            this._dequeue(id);
+        },
+
+        /**
+         * Cancells all uploads
+         */
+        cancelAll: function(){
+            for (var i=0; i<this._queue.length; i++){
+                this._cancel(this._queue[i]);
+            }
+            this._queue = [];
+        },
+
+        getName: function(id){
+            var file = this._files[id];
+            return file.fileName != null ? file.fileName : file.name;
+        },
+
+        getSize: function(id){
+            var file = this._files[id];
+            return file.fileSize != null ? file.fileSize : file.size;
+        },
+
+        /**
+         * Returns uploaded bytes for file identified by id
+         */
+        getLoaded: function(id){
+            return this._loaded[id] || 0;
+        },
+
+
+        /**
+         * Sends the file identified by id and additional query params to the server
+         * @param {Object} params name-value string pairs
+         */
+        _send: function(id, params){
+            var options = this._options,
+                name = this.getName(id),
+                size = this.getSize(id),
+                chunkSize = options.maxChunkSize || 0,
+                curUploadingSize,
+                curLoadedSize = 0,
+                file = this._files[id],
+                args = {
+                    headers : {
+                    }                    
+                };
+
+            this._loaded[id] = this._loaded[id] || 0;
+
+            var xhr = this._xhrs[id] = new Xhr({
+                url : options.url
+            });
+
+            if (chunkSize)  {
+
+                args.data = blobSlice.call(
+                    file,
+                    this._loaded[id],
+                    this._loaded[id] + chunkSize,
+                    file.type
+                );
+                // Store the current chunk size, as the blob itself
+                // will be dereferenced after data processing:
+                curUploadingSize = args.data.size;
+                // Expose the chunk bytes position range:
+                args.headers["content-range"] = 'bytes ' + this._loaded[id] + '-' +
+                    (this._loaded[id] + curUploadingSize - 1) + '/' + size;
+                args.headers["Content-Type"] = "application/octet-stream";
+            }  else {
+                curUploadingSize = size;
+                var formParamName =  params.formParamName,
+                    formData = params.formData;
+
+                if (formParamName) {
+                    if (!formData) {
+                        formData = new FormData();
+                    }
+                    formData.append(formParamName,file);
+                    args.data = formData;
+    
+                } else {
+                    args.headers["Content-Type"] = file.type || "application/octet-stream";
+                    args.data = file;
+                }
+            }
+
+
+            var self = this;
+            xhr.post(
+                args
+            ).progress(function(e){
+                if (e.lengthComputable){
+                    curLoadedSize = curLoadedSize + e.loaded;
+                    self._loaded[id] = self._loaded[id] + e.loaded;
+                    self._options.onProgress(id, name, self._loaded[id], size);
+                }
+            }).then(function(){
+                if (!self._files[id]) {
+                    // the request was aborted/cancelled
+                    return;
+                }
+
+                if (curLoadedSize < curUploadingSize) {
+                    // Create a progress event if no final progress event
+                    // with loaded equaling total has been triggered
+                    // for this chunk:
+                    self._loaded[id] = self._loaded[id] + curUploadingSize - curLoadedSize;
+                    self._options.onProgress(id, name, self._loaded[id], size);                    
+                }
+
+                if (self._loaded[id] <size) {
+                    // File upload not yet complete,
+                    // continue with the next chunk:
+                    self._send(id,params);
+                } else {
+                    self._options.onComplete(id,name);
+
+                    self._files[id] = null;
+                    self._xhrs[id] = null;
+                    self._dequeue(id);
+                }
+
+
+            }).catch(function(e){
+                self._options.onFailure(id,name,e);
+
+                self._files[id] = null;
+                self._xhrs[id] = null;
+                self._dequeue(id);
+            });
+        },
+
+        _cancel: function(id){
+            this._options.onCancel(id, this.getName(id));
+
+            this._files[id] = null;
+
+            if (this._xhrs[id]){
+                this._xhrs[id].abort();
+                this._xhrs[id] = null;
+            }
+        },
+
+        /**
+         * Returns id of files being uploaded or
+         * waiting for their turn
+         */
+        getQueue: function(){
+            return this._queue;
+        },
+
+
+        /**
+         * Removes element from queue, starts upload of next
+         */
+        _dequeue: function(id){
+            var i = arrays.inArray(id,this._queue);
+            this._queue.splice(i, 1);
+
+            var max = this._options.maxConnections;
+
+            if (this._queue.length >= max && i < max){
+                var nextId = this._queue[max-1];
+                this._send(nextId, this._params[nextId]);
+            }
+        }
+    });
+
+    return http.Upload = Upload;    
+});
+define('skylark-domx-fx/fx',[
+    "skylark-langx/skylark",
+    "skylark-langx/langx",
+    "skylark-domx-browser",
+    "skylark-domx-noder",
+    "skylark-domx-geom",
+    "skylark-domx-styler",
+    "skylark-domx-eventer"
+], function(skylark, langx, browser, noder, geom, styler, eventer) {
+    var animationName,
+        animationDuration,
+        animationTiming,
+        animationDelay,
+        transitionProperty,
+        transitionDuration,
+        transitionTiming,
+        transitionDelay,
+
+        animationEnd = browser.normalizeCssEvent('AnimationEnd'),
+        transitionEnd = browser.normalizeCssEvent('TransitionEnd'),
+
+        supportedTransforms = /^((translate|rotate|scale)(X|Y|Z|3d)?|matrix(3d)?|perspective|skew(X|Y)?)$/i,
+        transform = browser.css3PropPrefix + "transform",
+        cssReset = {};
+
+
+    cssReset[animationName = browser.normalizeCssProperty("animation-name")] =
+        cssReset[animationDuration = browser.normalizeCssProperty("animation-duration")] =
+        cssReset[animationDelay = browser.normalizeCssProperty("animation-delay")] =
+        cssReset[animationTiming = browser.normalizeCssProperty("animation-timing-function")] = "";
+
+    cssReset[transitionProperty = browser.normalizeCssProperty("transition-property")] =
+        cssReset[transitionDuration = browser.normalizeCssProperty("transition-duration")] =
+        cssReset[transitionDelay = browser.normalizeCssProperty("transition-delay")] =
+        cssReset[transitionTiming = browser.normalizeCssProperty("transition-timing-function")] = "";
+
+
+
+    /*   
+     * Perform a custom animation of a set of CSS properties.
+     * @param {Object} elm  
+     * @param {Number or String} properties
+     * @param {String} ease
+     * @param {Number or String} duration
+     * @param {Function} callback
+     * @param {Number or String} delay
+     */
+    function animate(elm, properties, duration, ease, callback, delay) {
+        var key,
+            cssValues = {},
+            cssProperties = [],
+            transforms = "",
+            that = this,
+            endEvent,
+            wrappedCallback,
+            fired = false,
+            hasScrollTop = false,
+            resetClipAuto = false;
+
+        if (langx.isPlainObject(duration)) {
+            ease = duration.easing;
+            callback = duration.complete;
+            delay = duration.delay;
+            duration = duration.duration;
+        }
+
+        if (langx.isString(duration)) {
+            duration = fx.speeds[duration];
+        }
+        if (duration === undefined) {
+            duration = fx.speeds.normal;
+        }
+        duration = duration / 1000;
+        if (fx.off) {
+            duration = 0;
+        }
+
+        if (langx.isFunction(ease)) {
+            callback = ease;
+            eace = "swing";
+        } else {
+            ease = ease || "swing";
+        }
+
+        if (delay) {
+            delay = delay / 1000;
+        } else {
+            delay = 0;
+        }
+
+        if (langx.isString(properties)) {
+            // keyframe animation
+            cssValues[animationName] = properties;
+            cssValues[animationDuration] = duration + "s";
+            cssValues[animationTiming] = ease;
+            endEvent = animationEnd;
+        } else {
+            // CSS transitions
+            for (key in properties) {
+                var v = properties[key];
+                if (supportedTransforms.test(key)) {
+                    transforms += key + "(" + v + ") ";
+                } else {
+                    if (key === "scrollTop") {
+                        hasScrollTop = true;
+                    }
+                    if (key == "clip" && langx.isPlainObject(v)) {
+                        cssValues[key] = "rect(" + v.top+"px,"+ v.right +"px,"+ v.bottom +"px,"+ v.left+"px)";
+                        if (styler.css(elm,"clip") == "auto") {
+                            var size = geom.size(elm);
+                            styler.css(elm,"clip","rect("+"0px,"+ size.width +"px,"+ size.height +"px,"+"0px)");  
+                            resetClipAuto = true;
+                        }
+
+                    } else {
+                        cssValues[key] = v;
+                    }
+                    cssProperties.push(langx.dasherize(key));
+                }
+            }
+            endEvent = transitionEnd;
+        }
+
+        if (transforms) {
+            cssValues[transform] = transforms;
+            cssProperties.push(transform);
+        }
+
+        if (duration > 0 && langx.isPlainObject(properties)) {
+            cssValues[transitionProperty] = cssProperties.join(", ");
+            cssValues[transitionDuration] = duration + "s";
+            cssValues[transitionDelay] = delay + "s";
+            cssValues[transitionTiming] = ease;
+        }
+
+        wrappedCallback = function(event) {
+            fired = true;
+            if (event) {
+                if (event.target !== event.currentTarget) {
+                    return // makes sure the event didn't bubble from "below"
+                }
+                eventer.off(event.target, endEvent, wrappedCallback)
+            } else {
+                eventer.off(elm, animationEnd, wrappedCallback) // triggered by setTimeout
+            }
+            styler.css(elm, cssReset);
+            if (resetClipAuto) {
+ //               styler.css(elm,"clip","auto");
+            }
+            callback && callback.call(this);
+        };
+
+        if (duration > 0) {
+            eventer.on(elm, endEvent, wrappedCallback);
+            // transitionEnd is not always firing on older Android phones
+            // so make sure it gets fired
+            langx.debounce(function() {
+                if (fired) {
+                    return;
+                }
+                wrappedCallback.call(that);
+            }, ((duration + delay) * 1000) + 25)();
+        }
+
+        // trigger page reflow so new elements can animate
+        elm.clientLeft;
+
+        styler.css(elm, cssValues);
+
+        if (duration <= 0) {
+            langx.debounce(function() {
+                if (fired) {
+                    return;
+                }
+                wrappedCallback.call(that);
+            }, 0)();
+        }
+
+        if (hasScrollTop) {
+            scrollToTop(elm, properties["scrollTop"], duration, callback);
+        }
+
+        return this;
+    }
+
+    /*   
+     * Display an element.
+     * @param {Object} elm  
+     * @param {String} speed
+     * @param {Function} callback
+     */
+    function show(elm, speed, callback) {
+        styler.show(elm);
+        if (speed) {
+            if (!callback && langx.isFunction(speed)) {
+                callback = speed;
+                speed = "normal";
+            }
+            styler.css(elm, "opacity", 0)
+            animate(elm, { opacity: 1, scale: "1,1" }, speed, callback);
+        }
+        return this;
+    }
+
+
+    /*   
+     * Hide an element.
+     * @param {Object} elm  
+     * @param {String} speed
+     * @param {Function} callback
+     */
+    function hide(elm, speed, callback) {
+        if (speed) {
+            if (!callback && langx.isFunction(speed)) {
+                callback = speed;
+                speed = "normal";
+            }
+            animate(elm, { opacity: 0, scale: "0,0" }, speed, function() {
+                styler.hide(elm);
+                if (callback) {
+                    callback.call(elm);
+                }
+            });
+        } else {
+            styler.hide(elm);
+        }
+        return this;
+    }
+
+    /*   
+     * Set the vertical position of the scroll bar for an element.
+     * @param {Object} elm  
+     * @param {Number or String} pos
+     * @param {Number or String} speed
+     * @param {Function} callback
+     */
+    function scrollToTop(elm, pos, speed, callback) {
+        var scrollFrom = parseInt(elm.scrollTop),
+            i = 0,
+            runEvery = 5, // run every 5ms
+            freq = speed * 1000 / runEvery,
+            scrollTo = parseInt(pos);
+
+        var interval = setInterval(function() {
+            i++;
+
+            if (i <= freq) elm.scrollTop = (scrollTo - scrollFrom) / freq * i + scrollFrom;
+
+            if (i >= freq + 1) {
+                clearInterval(interval);
+                if (callback) langx.debounce(callback, 1000)();
+            }
+        }, runEvery);
+    }
+
+    /*   
+     * Display or hide an element.
+     * @param {Object} elm  
+     * @param {Number or String} speed
+     * @param {Function} callback
+     */
+    function toggle(elm, speed, callback) {
+        if (styler.isInvisible(elm)) {
+            show(elm, speed, callback);
+        } else {
+            hide(elm, speed, callback);
+        }
+        return this;
+    }
+
+    /*   
+     * Adjust the opacity of an element.
+     * @param {Object} elm  
+     * @param {Number or String} speed
+     * @param {Number or String} opacity
+     * @param {String} easing
+     * @param {Function} callback
+     */
+    function fadeTo(elm, speed, opacity, easing, callback) {
+        animate(elm, { opacity: opacity }, speed, easing, callback);
+        return this;
+    }
+
+
+    /*   
+     * Display an element by fading them to opaque.
+     * @param {Object} elm  
+     * @param {Number or String} speed
+     * @param {String} easing
+     * @param {Function} callback
+     */
+    function fadeIn(elm, speed, easing, callback) {
+        var target = styler.css(elm, "opacity");
+        if (target > 0) {
+            styler.css(elm, "opacity", 0);
+        } else {
+            target = 1;
+        }
+        styler.show(elm);
+
+        fadeTo(elm, speed, target, easing, callback);
+
+        return this;
+    }
+
+    /*   
+     * Hide an element by fading them to transparent.
+     * @param {Object} elm  
+     * @param {Number or String} speed
+     * @param {String} easing
+     * @param {Function} callback
+     */
+    function fadeOut(elm, speed, easing, callback) {
+        var _elm = elm,
+            complete,
+            opacity = styler.css(elm,"opacity"),
+            options = {};
+
+        if (langx.isPlainObject(speed)) {
+            options.easing = speed.easing;
+            options.duration = speed.duration;
+            complete = speed.complete;
+        } else {
+            options.duration = speed;
+            if (callback) {
+                complete = callback;
+                options.easing = easing;
+            } else {
+                complete = easing;
+            }
+        }
+        options.complete = function() {
+            styler.css(elm,"opacity",opacity);
+            styler.hide(elm);
+            if (complete) {
+                complete.call(elm);
+            }
+        }
+
+        fadeTo(elm, options, 0);
+
+        return this;
+    }
+
+    /*   
+     * Display or hide an element by animating its opacity.
+     * @param {Object} elm  
+     * @param {Number or String} speed
+     * @param {String} ceasing
+     * @param {Function} callback
+     */
+    function fadeToggle(elm, speed, ceasing, allback) {
+        if (styler.isInvisible(elm)) {
+            fadeIn(elm, speed, easing, callback);
+        } else {
+            fadeOut(elm, speed, easing, callback);
+        }
+        return this;
+    }
+
+    /*   
+     * Display an element with a sliding motion.
+     * @param {Object} elm  
+     * @param {Number or String} duration
+     * @param {Function} callback
+     */
+    function slideDown(elm, duration, callback) {
+
+        // get the element position to restore it then
+        var position = styler.css(elm, 'position');
+
+        // show element if it is hidden
+        show(elm);
+
+        // place it so it displays as usually but hidden
+        styler.css(elm, {
+            position: 'absolute',
+            visibility: 'hidden'
+        });
+
+        // get naturally height, margin, padding
+        var marginTop = styler.css(elm, 'margin-top');
+        var marginBottom = styler.css(elm, 'margin-bottom');
+        var paddingTop = styler.css(elm, 'padding-top');
+        var paddingBottom = styler.css(elm, 'padding-bottom');
+        var height = styler.css(elm, 'height');
+
+        // set initial css for animation
+        styler.css(elm, {
+            position: position,
+            visibility: 'visible',
+            overflow: 'hidden',
+            height: 0,
+            marginTop: 0,
+            marginBottom: 0,
+            paddingTop: 0,
+            paddingBottom: 0
+        });
+
+        // animate to gotten height, margin and padding
+        animate(elm, {
+            height: height,
+            marginTop: marginTop,
+            marginBottom: marginBottom,
+            paddingTop: paddingTop,
+            paddingBottom: paddingBottom
+        }, {
+            duration: duration,
+            complete: function() {
+                if (callback) {
+                    callback.apply(elm);
+                }
+            }
+        });
+
+        return this;
+    }
+
+    /*   
+     * Hide an element with a sliding motion.
+     * @param {Object} elm  
+     * @param {Number or String} duration
+     * @param {Function} callback
+     */
+    function slideUp(elm, duration, callback) {
+        // active the function only if the element is visible
+        if (geom.height(elm) > 0) {
+
+            // get the element position to restore it then
+            var position = styler.css(elm, 'position');
+
+            // get the element height, margin and padding to restore them then
+            var height = styler.css(elm, 'height');
+            var marginTop = styler.css(elm, 'margin-top');
+            var marginBottom = styler.css(elm, 'margin-bottom');
+            var paddingTop = styler.css(elm, 'padding-top');
+            var paddingBottom = styler.css(elm, 'padding-bottom');
+
+            // set initial css for animation
+            styler.css(elm, {
+                visibility: 'visible',
+                overflow: 'hidden',
+                height: height,
+                marginTop: marginTop,
+                marginBottom: marginBottom,
+                paddingTop: paddingTop,
+                paddingBottom: paddingBottom
+            });
+
+            // animate element height, margin and padding to zero
+            animate(elm, {
+                height: 0,
+                marginTop: 0,
+                marginBottom: 0,
+                paddingTop: 0,
+                paddingBottom: 0
+            }, {
+                // callback : restore the element position, height, margin and padding to original values
+                duration: duration,
+                queue: false,
+                complete: function() {
+                    hide(elm);
+                    styler.css(elm, {
+                        visibility: 'visible',
+                        overflow: 'hidden',
+                        height: height,
+                        marginTop: marginTop,
+                        marginBottom: marginBottom,
+                        paddingTop: paddingTop,
+                        paddingBottom: paddingBottom
+                    });
+                    if (callback) {
+                        callback.apply(elm);
+                    }
+                }
+            });
+        }
+        return this;
+    }
+
+
+    /*   
+     * Display or hide an element with a sliding motion.
+     * @param {Object} elm  
+     * @param {Number or String} duration
+     * @param {Function} callback
+     */
+    function slideToggle(elm, duration, callback) {
+
+        // if the element is hidden, slideDown !
+        if (geom.height(elm) == 0) {
+            slideDown(elm, duration, callback);
+        }
+        // if the element is visible, slideUp !
+        else {
+            slideUp(elm, duration, callback);
+        }
+        return this;
+    }
+
+    function emulateTransitionEnd(elm,duration) {
+        var called = false;
+        eventer.one(elm,'transitionEnd', function () { 
+            called = true;
+        })
+        var callback = function () { 
+            if (!called) {
+                eventer.trigger(elm,browser.support.transition.end) 
+            }
+        };
+        setTimeout(callback, duration);
+        
+        return this;
+    } 
+
+    /*   
+     *
+     * @param {Node} elm
+     * @param {Node} params
+     */
+    function overlay(elm, params) {
+        var overlayDiv = noder.createElement("div", params);
+        styler.css(overlayDiv, {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 0x7FFFFFFF,
+            opacity: 0.7
+        });
+        elm.appendChild(overlayDiv);
+        return overlayDiv;
+
+    }
+    
+    /*   
+     * Replace an old node with the specified node.
+     * @param {HTMLElement} elm
+     * @param {Node} params
+     */
+    function throb(elm, params) {
+        params = params || {};
+        var self = this,
+            text = params.text,
+            style = params.style,
+            time = params.time,
+            callback = params.callback,
+            timer,
+
+            throbber = noder.createElement("div", {
+                "class": params.className || "throbber"
+            }),
+            _overlay = overlay(throbber, {
+                "class": 'overlay fade'
+            }),
+            throb = noder.createElement("div", {
+                "class": "throb"
+            }),
+            textNode = noder.createTextNode(text || ""),
+            remove = function() {
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                if (throbber) {
+                    noder.remove(throbber);
+                    throbber = null;
+                }
+            },
+            update = function(params) {
+                if (params && params.text && throbber) {
+                    textNode.nodeValue = params.text;
+                }
+            };
+        if (params.style) {
+            styler.css(throbber,params.style);
+        }
+        throb.appendChild(textNode);
+        throbber.appendChild(throb);
+        elm.appendChild(throbber);
+        var end = function() {
+            remove();
+            if (callback) callback();
+        };
+        if (time) {
+            timer = setTimeout(end, time);
+        }
+
+        return {
+            remove: remove,
+            update: update
+        };
+    }
+
+    function fx() {
+        return fx;
+    }
+
+    langx.mixin(fx, {
+        off: false,
+
+        speeds: {
+            normal: 400,
+            fast: 200,
+            slow: 600
+        },
+
+        animate,
+        emulateTransitionEnd,
+        fadeIn,
+        fadeOut,
+        fadeTo,
+        fadeToggle,
+        hide,
+        scrollToTop,
+
+        slideDown,
+        slideToggle,
+        slideUp,
+        show,
+        throb,
+        toggle
+    });
+
+    return skylark.attach("domx.fx", fx);
+});
+define('skylark-domx-fx/main',[
+	"./fx",
+	"skylark-domx-velm",
+	"skylark-domx-query"	
+],function(fx,velm,$){
+    // from ./fx
+    velm.delegate([
+        "animate",
+        "emulateTransitionEnd",
+        "fadeIn",
+        "fadeOut",
+        "fadeTo",
+        "fadeToggle",
+        "hide",
+        "scrollToTop",
+        "slideDown",
+        "slideToggle",
+        "slideUp",
+        "show",
+        "toggle"
+    ], fx);
+
+    $.fn.hide =  $.wraps.wrapper_every_act(fx.hide, fx);
+
+    $.fn.animate = $.wraps.wrapper_every_act(fx.animate, fx);
+    $.fn.emulateTransitionEnd = $.wraps.wrapper_every_act(fx.emulateTransitionEnd, fx);
+
+    $.fn.show = $.wraps.wrapper_every_act(fx.show, fx);
+    $.fn.hide = $.wraps.wrapper_every_act(fx.hide, fx);
+    $.fn.toogle = $.wraps.wrapper_every_act(fx.toogle, fx);
+    $.fn.fadeTo = $.wraps.wrapper_every_act(fx.fadeTo, fx);
+    $.fn.fadeIn = $.wraps.wrapper_every_act(fx.fadeIn, fx);
+    $.fn.fadeOut = $.wraps.wrapper_every_act(fx.fadeOut, fx);
+    $.fn.fadeToggle = $.wraps.wrapper_every_act(fx.fadeToggle, fx);
+
+    $.fn.slideDown = $.wraps.wrapper_every_act(fx.slideDown, fx);
+    $.fn.slideToggle = $.wraps.wrapper_every_act(fx.slideToggle, fx);
+    $.fn.slideUp = $.wraps.wrapper_every_act(fx.slideUp, fx);
+
+	return fx;
+});
+define('skylark-domx-fx', ['skylark-domx-fx/main'], function (main) { return main; });
+
+define('skylark-domx-plugins/plugins',[
+    "skylark-langx/skylark",
+    "skylark-langx/langx",
+    "skylark-domx-noder",
+    "skylark-domx-data",
+    "skylark-domx-eventer",
+    "skylark-domx-finder",
+    "skylark-domx-geom",
+    "skylark-domx-styler",
+    "skylark-domx-fx",
+    "skylark-domx-query",
+    "skylark-domx-velm"
+], function(skylark, langx, noder, datax, eventer, finder, geom, styler, fx, $, elmx) {
+    "use strict";
+
+    var slice = Array.prototype.slice,
+        concat = Array.prototype.concat,
+        pluginKlasses = {},
+        shortcuts = {};
+
+    /*
+     * Create or get or destory a plugin instance assocated with the element.
+     */
+    function instantiate(elm,pluginName,options) {
+        var pair = pluginName.split(":"),
+            instanceDataName = pair[1];
+        pluginName = pair[0];
+
+        if (!instanceDataName) {
+            instanceDataName = pluginName;
+        }
+
+        var pluginInstance = datax.data( elm, instanceDataName );
+
+        if (options === "instance") {
+            return pluginInstance;
+        } else if (options === "destroy") {
+            if (!pluginInstance) {
+                throw new Error ("The plugin instance is not existed");
+            }
+            pluginInstance.destroy();
+            datax.removeData( elm, pluginName);
+            pluginInstance = undefined;
+        } else {
+            if (!pluginInstance) {
+                if (options !== undefined && typeof options !== "object") {
+                    throw new Error ("The options must be a plain object");
+                }
+                var pluginKlass = pluginKlasses[pluginName]; 
+                pluginInstance = new pluginKlass(elm,options);
+                datax.data( elm, instanceDataName,pluginInstance );
+            } else if (options) {
+                pluginInstance.reset(options);
+            }
+        }
+
+        return pluginInstance;
+    }
+
+
+    function shortcutter(pluginName,extfn) {
+       /*
+        * Create or get or destory a plugin instance assocated with the element,
+        * and also you can execute the plugin method directory;
+        */
+        return function (elm,options) {
+            var  plugin = instantiate(elm, pluginName,"instance");
+            if ( options === "instance" ) {
+              return plugin || null;
+            }
+
+            if (!plugin) {
+                plugin = instantiate(elm, pluginName,typeof options == 'object' && options || {});
+                if (typeof options != "string") {
+                  return this;
+                }
+            } 
+            if (options) {
+                var args = slice.call(arguments,1); //2
+                if (extfn) {
+                    return extfn.apply(plugin,args);
+                } else {
+                    if (typeof options == 'string') {
+                        var methodName = options;
+
+                        if ( !plugin ) {
+                            throw new Error( "cannot call methods on " + pluginName +
+                                " prior to initialization; " +
+                                "attempted to call method '" + methodName + "'" );
+                        }
+
+                        if ( !langx.isFunction( plugin[ methodName ] ) || methodName.charAt( 0 ) === "_" ) {
+                            throw new Error( "no such method '" + methodName + "' for " + pluginName +
+                                " plugin instance" );
+                        }
+
+                        var ret = plugin[methodName].apply(plugin,args);
+                        if (ret == plugin) {
+                          ret = undefined;
+                        }
+
+                        return ret;
+                    }                
+                }                
+            }
+
+        }
+
+    }
+
+    /*
+     * Register a plugin type
+     */
+    function register( pluginKlass,shortcutName,instanceDataName,extfn) {
+        var pluginName = pluginKlass.prototype.pluginName;
+        
+        pluginKlasses[pluginName] = pluginKlass;
+
+        if (shortcutName) {
+            if (instanceDataName && langx.isFunction(instanceDataName)) {
+                extfn = instanceDataName;
+                instanceDataName = null;
+            } 
+            if (instanceDataName) {
+                pluginName = pluginName + ":" + instanceDataName;
+            }
+
+            var shortcut = shortcuts[shortcutName] = shortcutter(pluginName,extfn);
+                
+            $.fn[shortcutName] = function(options) {
+                var returnValue = this;
+
+                if ( !this.length && options === "instance" ) {
+                  returnValue = undefined;
+                } else {
+                  var args = slice.call(arguments);
+                  this.each(function () {
+                    var args2 = slice.call(args);
+                    args2.unshift(this);
+                    var  ret  = shortcut.apply(undefined,args2);
+                    if (ret !== undefined) {
+                        returnValue = ret;
+                    }
+                  });
+                }
+
+                return returnValue;
+            };
+
+            elmx.partial(shortcutName,function(options) {
+                var  ret  = shortcut(this._elm,options);
+                if (ret === undefined) {
+                    ret = this;
+                }
+                return ret;
+            });
+
+        }
+    }
+
+ 
+    var Plugin =   langx.Evented.inherit({
+        klassName: "Plugin",
+
+        _construct : function(elm,options) {
+           this._elm = elm;
+           this._initOptions(options);
+        },
+
+        _initOptions : function(options) {
+          var ctor = this.constructor,
+              cache = ctor.cache = ctor.cache || {},
+              defaults = cache.defaults;
+          if (!defaults) {
+            var  ctors = [];
+            do {
+              ctors.unshift(ctor);
+              if (ctor === Plugin) {
+                break;
+              }
+              ctor = ctor.superclass;
+            } while (ctor);
+
+            defaults = cache.defaults = {};
+            for (var i=0;i<ctors.length;i++) {
+              ctor = ctors[i];
+              if (ctor.prototype.hasOwnProperty("options")) {
+                langx.mixin(defaults,ctor.prototype.options,true);
+              }
+              if (ctor.hasOwnProperty("options")) {
+                langx.mixin(defaults,ctor.options,true);
+              }
+            }
+          }
+          Object.defineProperty(this,"options",{
+            value :langx.mixin({},defaults,options,true)
+          });
+
+          //return this.options = langx.mixin({},defaults,options);
+          return this.options;
+        },
+
+
+        destroy: function() {
+            var that = this;
+
+            this._destroy();
+            // We can probably remove the unbind calls in 2.0
+            // all event bindings should go through this._on()
+            datax.removeData(this._elm,this.pluginName );
+        },
+
+        _destroy: langx.noop,
+
+        _delay: function( handler, delay ) {
+            function handlerProxy() {
+                return ( typeof handler === "string" ? instance[ handler ] : handler )
+                    .apply( instance, arguments );
+            }
+            var instance = this;
+            return setTimeout( handlerProxy, delay || 0 );
+        },
+
+        option: function( key, value ) {
+            var options = key;
+            var parts;
+            var curOption;
+            var i;
+
+            if ( arguments.length === 0 ) {
+
+                // Don't return a reference to the internal hash
+                return langx.mixin( {}, this.options );
+            }
+
+            if ( typeof key === "string" ) {
+
+                // Handle nested keys, e.g., "foo.bar" => { foo: { bar: ___ } }
+                options = {};
+                parts = key.split( "." );
+                key = parts.shift();
+                if ( parts.length ) {
+                    curOption = options[ key ] = langx.mixin( {}, this.options[ key ] );
+                    for ( i = 0; i < parts.length - 1; i++ ) {
+                        curOption[ parts[ i ] ] = curOption[ parts[ i ] ] || {};
+                        curOption = curOption[ parts[ i ] ];
+                    }
+                    key = parts.pop();
+                    if ( arguments.length === 1 ) {
+                        return curOption[ key ] === undefined ? null : curOption[ key ];
+                    }
+                    curOption[ key ] = value;
+                } else {
+                    if ( arguments.length === 1 ) {
+                        return this.options[ key ] === undefined ? null : this.options[ key ];
+                    }
+                    options[ key ] = value;
+                }
+            }
+
+            this._setOptions( options );
+
+            return this;
+        },
+
+        _setOptions: function( options ) {
+            var key;
+
+            for ( key in options ) {
+                this._setOption( key, options[ key ] );
+            }
+
+            return this;
+        },
+
+        _setOption: function( key, value ) {
+
+            this.options[ key ] = value;
+
+            return this;
+        },
+
+        getUID : function (prefix) {
+            prefix = prefix || "plugin";
+            do prefix += ~~(Math.random() * 1000000)
+            while (document.getElementById(prefix))
+            return prefix;
+        },
+
+        elm : function() {
+            return this._elm;
+        }
+
+    });
+
+    $.fn.plugin = function(name,options) {
+        var args = slice.call( arguments, 1 ),
+            self = this,
+            returnValue = this;
+
+        this.each(function(){
+            returnValue = instantiate.apply(self,[this,name].concat(args));
+        });
+        return returnValue;
+    };
+
+    elmx.partial("plugin",function(name,options) {
+        var args = slice.call( arguments, 1 );
+        return instantiate.apply(this,[this.domNode,name].concat(args));
+    }); 
+
+
+    function plugins() {
+        return plugins;
+    }
+     
+    langx.mixin(plugins, {
+        instantiate,
+        Plugin,
+        register,
+        shortcuts
+    });
+
+    return  skylark.attach("domx.plugins",plugins);
+});
+define('skylark-domx-plugins/main',[
+	"./plugins"
+],function(plugins){
+	return plugins;
+});
+define('skylark-domx-plugins', ['skylark-domx-plugins/main'], function (main) { return main; });
+
+define('skylark-domx-files/MultiUploader',[
+  "skylark-langx/skylark",
+  "skylark-langx/langx",
+  "skylark-domx-query",
+  "skylark-domx-velm",
+  "skylark-net-http/Upload",
+  "skylark-domx-plugins",
+  "./files"
+]  ,function(skylark,langx,$, elmx,FileUpload, plugins,files){
+
+    var fileListTemplate = '<div class="lark-multiuploader">' + 
+        '    <h3 class="popover-title">Upload files</h3>' + 
+        '    <div class="popover-content container-fluid" class="file-list file-dropzone file-pastezone">' + 
+        '        <div class="no-data"><em>Add files.</em></div>' + 
+        '    </div>' + 
+        '    <footer>' + 
+        '        <button class="btn btn-warning pull-right btn-sm" id="cancel-uploads-button"><i class="icon-cancel"></i>Cancel uploads</button>' + 
+        '        <span class="btn btn-success fileinput-button btn-sm" id="fileinput-button">' + 
+        '            <i class="icon-plus"></i>' + 
+        '            <span>Add files...</span>' + 
+        '            <input id="fileupload" type="file" name="files[]" multiple="multiple">' + 
+        '        </span>' + 
+        '        <button class="btn btn-primary btn-sm" id="start-uploads-button"><i class="icon-start"></i>Start uploads</button>' + 
+        '    </footer>' + 
+        '</div>',
+        fileItemTemplate = '<div class="file-item row">' +
+        '   <div class="col-md-6"><span class="name"></span></div>' + 
+        '   <div class="col-md-3">' +
+        '    <span class="size"></span>' +
+        '    <div class="progress hidden">' +
+        '        <div class="progress-label"></div>' +
+        '        <div class="bar"></div>' +
+        '    </div>' +
+        '    <span class="message hidden"></span>' +
+        '   </div>' +
+        '   <div class="col-md-3">' +
+        '    <button class="btn btn-warning btn-xs cancel"><i class="icon-remove"></i>Cancel</button>' +
+        '    <button class="btn btn-xs clear hidden">Clear</button>' +
+        '   </div>' +
+        '</div>';
+
+    var MultiUploader =  plugins.Plugin.inherit({
+        klassName : "Uploader",
+        pluginName : "lark.multiuploader",
+
+        options: {
+            uploadUrl: '/upload',
+
+        	params: {
+                formParamName : "file"
+            },
+
+    	    maxConnections: 3,
+        	// validation
+        	allowedExtensions: [],
+        	sizeLimit: 0,
+        	minSizeLimit: 0,
+
+            autoUpload: false,
+            selectors : {
+              fileList : ".file-list",
+              fileItem : ".file-item",
+              nodata : ".file-list .no-data",
+
+              picker   : ".file-picker",
+              dropzone : ".file-dropzone",
+              pastezone: ".file-pastezone",
+
+              startUploads: '.start-uploads',
+              cancelUploads: '.cancel-uploads',
+            },
+
+            template : fileListTemplate,
+
+            dataType: 'json',
+
+            fileItem : {
+            	selectors : {
+                    name : ".name",
+                    size : ".size",
+                    cancel: ".cancel",
+                    clear : ".clear",
+                    progress : ".progress",
+                    message : ".message"                   
+            	},
+
+            	template : fileItemTemplate
+            }
+        },
+
+
+        _construct : function(elm,options) {
+            var self = this;
+
+
+            // Render current files
+            /*
+            this.files.forEach(function (file) {
+                self.renderFile(file);
+            });
+            */
+
+            //this._refresh({files:true});
+        
+
+            //this._files.on('all', function(){
+            //  self._refresh({files:true});
+            //});
+
+
+           this.overrided(elm,options);
+
+
+           this._velm = elmx(this._elm);
+        
+
+
+            this._initEventHandler();
+            this._initFileHandlers();
+            this._initUpoadHandler();
+            this._updateFileList();
+        },
+
+        _initFileHandlers : function() {
+            var self = this;
+
+            var selectors = this.options.selectors,
+            	dzSelector = selectors.dropzone,
+            	pzSelector = selectors.pastezone,
+            	pkSelector = selectors.picker;
+
+            if (dzSelector) {
+				this._velm.$(dzSelector).dropzone({
+	                dropped : function (files) {
+                        self._addFiles(files);
+	                }
+				});
+            }
+
+
+            if (pzSelector) {
+                this._velm.$(pzSelector).pastezone({
+                    pasted : function (files) {
+                        self._addFiles(files);
+                    }
+                });                
+            }
+
+            if (pkSelector) {
+                this._velm.$(pkSelector).picker({
+                    multiple: true,
+                    picked : function (files) {
+                        self._addFiles(files);
+                    }
+                });                
+            }
+        },
+
+        _initUpoadHandler: function(){
+            var self = this,
+                handlerClass;
+
+            this._handler = new FileUpload({
+                url: this.options.uploadUrl,
+                maxConnections: this.options.maxConnections,
+                onProgress: function(id, fileName, loaded, total){
+                    self._onProgress(id, fileName, loaded, total);
+                },
+                onComplete: function(id, fileName, result){
+                    self._onComplete(id, fileName, result);
+                },
+                onCancel: function(id, fileName){
+                    self._onCancel(id, fileName);
+                },
+                onFailure: function(id,fileName,e){
+                    self._onFailure(id,fileName,e);
+                }
+            });
+        },
+        
+         /**
+         * delegate click event for cancel link
+         **/
+        _initEventHandler: function(){
+            var self = this,
+               selectors = this.options.selectors,
+               itemSelectors = this.options.fileItem.selectors, 
+               list = this._listElement;
+
+            // Add cancel handler
+            this._velm.$(selectors.fileList).on("click",itemSelectors.cancel,function(e){
+                var $fileItem = $(this).closest(selectors.fileItem),
+                    fileId = $fileItem.data("fileId");
+                self._handler.cancel(fileId);
+                $fileItem.remove();
+                self._updateFileList();
+            });
+
+            // Add clear handler
+            this._velm.$(selectors.fileList).on("click",itemSelectors.clear,function(e){
+                var $fileItem = $(this).closest(selectors.fileItem),
+                    fileId = $fileItem.data("fileId");
+                $fileItem.remove();
+                self._updateFileList();
+            });
+
+            // Add cancel all handler
+            this._velm.$(selectors.cancelUploads).click(function(){
+                var $files = self._velm.$(selectors.fileList).find(selectors.fileItem);           
+                $files.forEach(function(fileItem){
+                    var $fileItem = $(fileItem),
+                        fileId = $fileItem.data("fileId");
+                    self._handler.cancel(fileId);
+                    $fileItem.remove();
+                });
+                self._updateFileList();
+
+            });
+
+            // Add start uploads handler
+            this._velm.$(selectors.startUploads).click(function(){
+                var $files = self._velm.$(selectors.fileList).find(selectors.fileItem);           
+                $files.forEach(function(fileItem){
+                    var $fileItem = $(fileItem),
+                        fileId = $fileItem.data("fileId");
+                    if (!$fileItem.data("status")) {
+                        // The file has not yet been sent
+                        self._handler.send(fileId,self.options.params);
+                    }
+                });
+
+            });
+            
+
+        },       
+
+        _onProgress: function(id, fileName, loaded, total){          
+            var $item = this._getItemByFileId(id);
+
+            var percent = parseInt(loaded / total * 100, 10);
+            var progressHTML = this._formatSize(loaded)+' of '+ this._formatSize(total);
+
+            $item.data("status","running");
+            $item.find('.progress')
+                .find('.bar')
+                .css('width', percent+'%')
+                .parent()
+                .find('.progress-label')
+                .html(progressHTML);
+            this._updateFile($item);
+
+        },
+
+        _onComplete: function(id, fileName, result){
+            this._filesInProgress--;
+            var $item = this._getItemByFileId(id);
+            $item.data("status","done");
+            $item.find('.message').html('<i class="icon-success"></i> ' + (this.doneMsg || 'Uploaded'));
+            this._updateFile($item);
+        },
+
+        _onFailure : function(id,fileName,e) {
+            this._filesInProgress--;
+            var $item = this._getItemByFileId(id);
+            $item.data("status","error");
+            $item.find('.message').html('<i class="icon-error"></i> ');;
+            this._updateFile($item)
+
+        },
+
+        _onCancel: function(id, fileName){
+            this._filesInProgress--;
+            var $item = this._getItemByFileId(id);
+            $item.data("status","cancel");
+            this._updateFile($item)
+        },
+
+        _addToList: function(id, fileName){
+            var self = this;
+
+
+            var fileName = this._handler.getName(id),
+                fileSize = this._handler.getSize(id);
+
+            var item = $(this.options.fileItem.template);
+            item.data("fileId",id);
+
+            item.find(this.options.fileItem.selectors.name).html(this._formatFileName(fileName));
+            item.find(this.options.fileItem.selectors.size).html(this._formatSize(fileSize));
+
+            this._velm.$(this.options.selectors.fileList).append(item);
+
+            this._updateFileList();
+        },
+    
+        _updateFileList : function ()  {
+            var selectors = this.options.selectors,
+                itemSelectors = this.options.fileItem.selectors,
+                files = this._velm.$(selectors.fileList).find(selectors.fileItem);
+
+            var with_files_elements = this._velm.$(selectors.cancelUploads + ',' + selectors.startUploads);
+            var without_files_elements = this._velm.$(selectors.nodata);
+            if (files.length > 0) {
+                with_files_elements.removeClass('hidden');
+                without_files_elements.addClass('hidden');
+            } else {
+                with_files_elements.addClass('hidden');
+                without_files_elements.removeClass('hidden');
+            }
+        },
+        
+        _updateFile: function ($item) {
+            var selectors = this.options.fileItem.selectors,
+                when_pending = $item.find(selectors.size + "," + selectors.cancel),
+                when_running = $item.find(selectors.progress + "," + selectors.cancel),
+                when_done = $item.find(selectors.message + "," + selectors.clear);
+
+            var status = $item.data("status");    
+            if (status == "pending") {
+                when_running.add(when_done).addClass('hidden');
+                when_pending.removeClass('hidden');
+            } else if (status == "running") {
+                when_pending.add(when_done).addClass('hidden');
+                when_running.removeClass('hidden');
+            } else if (status == "done" || status == "error") {
+                when_pending.add(when_running).addClass('hidden');
+                when_done.removeClass('hidden');
+            }
+        },
+
+        _getItemByFileId: function(id){
+            var selectors = this.options.selectors,
+                files = this._velm.$(selectors.fileList).find(selectors.fileItem),
+                item;
+
+            // there can't be txt nodes in dynamically created list
+            // and we can  use nextSibling
+
+            for (var i = 0; i<files.length;i++){
+                var item2 = files[i];
+                if ($(item2).data("fileId") == id) {
+                    item = item2;
+                    break;
+                }
+            }
+            if (item) {
+                return $(item);
+            }
+        },
+
+
+            
+        _addFiles: function(files){
+            for (var i=0; i<files.length; i++){
+                if ( !this._validateFile(files[i])){
+                    return;
+                }
+            }
+
+            for (var i=0; i<files.length; i++){
+                this._addFile(files[i]);
+            }
+        },
+
+        _addFile: function(file){
+            var id = this._handler.add(file);
+
+            this._filesInProgress++;
+            this._addToList(id);
+
+            //this._handler.upload(id, this.options.params);
+        },
+
+        _validateFile: function(file){
+            var name, size;
+
+            if (file.value){
+                // it is a file input
+                // get input value and remove path to normalize
+                name = file.value.replace(/.*(\/|\\)/, "");
+            } else {
+                // fix missing properties in Safari
+                name = file.fileName != null ? file.fileName : file.name;
+                size = file.fileSize != null ? file.fileSize : file.size;
+            }
+
+            if (! this._isAllowedExtension(name)){
+                this._error('typeError', name);
+                return false;
+
+            } else if (size === 0){
+                this._error('emptyError', name);
+                return false;
+
+            } else if (size && this.options.sizeLimit && size > this.options.sizeLimit){
+                this._error('sizeError', name);
+                return false;
+
+            } else if (size && size < this.options.minSizeLimit){
+                this._error('minSizeError', name);
+                return false;
+            }
+
+            return true;
+        },
+
+        _error: function(code, fileName){
+            var message = this.options.messages[code];
+            function r(name, replacement){ message = message.replace(name, replacement); }
+
+            r('{file}', this._formatFileName(fileName));
+            r('{extensions}', this.options.allowedExtensions.join(', '));
+            r('{sizeLimit}', this._formatSize(this.options.sizeLimit));
+            r('{minSizeLimit}', this._formatSize(this.options.minSizeLimit));
+
+            this.options.showMessage(message);
+        },
+
+        _formatFileName: function(name){
+            if (name.length > 33){
+                name = name.slice(0, 19) + '...' + name.slice(-13);
+            }
+            return name;
+        },
+
+        _isAllowedExtension: function(fileName){
+            var ext = (-1 !== fileName.indexOf('.')) ? fileName.replace(/.*[.]/, '').toLowerCase() : '';
+            var allowed = this.options.allowedExtensions;
+
+            if (!allowed.length){return true;}
+
+            for (var i=0; i<allowed.length; i++){
+                if (allowed[i].toLowerCase() == ext){ return true;}
+            }
+
+            return false;
+        },
+
+        _formatSize: function(bytes){
+            var i = -1;
+            do {
+                bytes = bytes / 1024;
+                i++;
+            } while (bytes > 99);
+
+            return Math.max(bytes, 0.1).toFixed(1) + ['KB', 'MB', 'GB', 'TB', 'PB', 'EB'][i];
+        }
+
+    });
+
+   plugins.register(MultiUploader);
+
+
+
+	return files.MultiUploader = MultiUploader;
+});
+define('skylark-domx-files/main',[
+	"./files",
+	"skylark-domx-velm",
+	"skylark-domx-query",
+	"./dropzone",
+	"./pastezone",
+	"./picker",
+	"./MultiUploader"
+],function(files,velm,$){
+	velm.delegate([
+		"dropzone",
+		"pastezone",
+		"picker"
+	],files);
+
+    $.fn.pastezone = $.wraps.wrapper_every_act(files.pastezone, files);
+    $.fn.dropzone = $.wraps.wrapper_every_act(files.dropzone, files);
+    $.fn.picker = $.wraps.wrapper_every_act(files.picker, files);
+
+	return files;
+});
+define('skylark-domx-files', ['skylark-domx-files/main'], function (main) { return main; });
+
 define('skylark-jszip/_stuk/jszip',[], function() {
 /*!
 
@@ -80129,179 +82539,116 @@ define('skylark-jszip', ['skylark-jszip/main'], function (main) { return main; }
 
 define('skylark-threegltfviewer/SimpleDropzone',[
 	"skylark-langx-emitter",
+	"skylark-langx-async/Deferred",
+	  "skylark-domx-velm",
+	 "skylark-domx-files",
+
+	 "skylark-domx-plugins",
+
 	"skylark-jszip",
 	"./threegltviewer"
-],function(Emitter,jszip,threegltviewer) {
+],function(
+	Emitter, 
+	Deferred, 
+	elmx,
+	files,
+	plugins,
+	jszip,
+	threegltviewer
+) {
 	//import ZipLoader from 'zip-loader';
 
 	/**
 	 * Watches an element for file drops, parses to create a filemap hierarchy,
 	 * and emits the result.
 	 */
-	class SimpleDropzone {
+	class SimpleDropzone extends plugins.Plugin {
+		get klassName() {
+	    	return "SingleUploader";
+    	} 
+
+    	get pluginName(){
+      		return "lark.singleuploader";
+    	} 
+
+		get options () {
+      		return {
+	            selectors : {
+	              picker   : ".file-picker",
+	              dropzone : ".file-dropzone",
+	              pastezone: ".file-pastezone",
+
+	              startUploads: '.start-uploads',
+	              cancelUploads: '.cancel-uploads',
+	            }
+	     	}
+		}
+
 
 	  /**
-	   * @param  {Element} el
-	   * @param  {Element} inputEl
+	   * @param  {Element} elm
+	   * @param  [options] 
 	   */
-	  constructor (el, inputEl) {
-	    this.el = el;
-	    this.inputEl = inputEl;
+	  constructor (elm, options) {
+	  	super(elm,options);
 
-	    this.listeners = {
-	      drop: [],
-	      dropstart: [],
-	      droperror: []
-	    };
+        this._velm = elmx(this._elm);
 
-	    this._onDragover = this._onDragover.bind(this);
-	    this._onDrop = this._onDrop.bind(this);
-	    this._onSelect = this._onSelect.bind(this);
+	  	this._initFileHandlers();
 
-	    el.addEventListener('dragover', this._onDragover, false);
-	    el.addEventListener('drop', this._onDrop, false);
-	    inputEl.addEventListener('change', this._onSelect);
-	  }
+	}
 
-	  /**
-	   * @param  {string}   type
-	   * @param  {Function} callback
-	   * @return {SimpleDropzone}
-	   */
-	  on (type, callback) {
-	    this.listeners[type].push(callback);
-	    return this;
-	  }
+    _initFileHandlers () {
+        var self = this;
 
-	  /**
-	   * @param  {string} type
-	   * @param  {Object} data
-	   * @return {SimpleDropzone}
-	   */
-	  _emit (type, data) {
-	    this.listeners[type]
-	      .forEach((callback) => callback(data));
-	    return this;
-	  }
+        var selectors = this.options.selectors,
+        	dzSelector = selectors.dropzone,
+        	pzSelector = selectors.pastezone,
+        	pkSelector = selectors.picker;
+
+        if (dzSelector) {
+			this._velm.$(dzSelector).dropzone({
+                dropped : function (files) {
+                    self._addFile(files[0]);
+                }
+			});
+        }
+
+
+        if (pzSelector) {
+            this._velm.$(pzSelector).pastezone({
+                pasted : function (files) {
+                    self._addFile(files[0]);
+                }
+            });                
+        }
+
+        if (pkSelector) {
+            this._velm.$(pkSelector).picker({
+                multiple: true,
+                picked : function (files) {
+                    self._addFile(files[0]);
+                }
+            });                
+        }
+    }
+
+     _addFile(file) {
+	    if (this._isZip(file)) {
+	      this._loadZip(file);
+	    } else {
+	        this.emit('drop', {files: new Map([[file.name, file]])});	    	
+	    } 
+
+     }
+
 
 	  /**
 	   * Destroys the instance.
 	   */
 	  destroy () {
-	    const el = this.el;
-	    const inputEl = this.inputEl;
-
-	    el.removeEventListener(this._onDragover);
-	    el.removeEventListener(this._onDrop);
-	    inputEl.removeEventListener(this._onSelect);
-
-	    delete this.el;
-	    delete this.inputEl;
-	    delete this.listeners;
 	  }
 
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onDrop (e) {
-	    e.stopPropagation();
-	    e.preventDefault();
-
-	    this._emit('dropstart');
-
-	    let entries;
-	    if (e.dataTransfer.items) {
-	      entries = [].slice.call(e.dataTransfer.items)
-	        .map((item) => item.webkitGetAsEntry());
-	    } else if ((e.dataTransfer.files||[]).length === 1) {
-	      const file = e.dataTransfer.files[0];
-	      if (this._isZip(file)) {
-	        this._loadZip(file);
-	        return;
-	      } else {
-	        this._emit('drop', {files: new Map([[file.name, file]])});
-	        return;
-	      }
-	    }
-
-	    if (!entries) {
-	      this._fail('Required drag-and-drop APIs are not supported in this browser.');
-	    }
-
-	    if (entries.length === 1 && entries[0].name.match(/\.zip$/)) {
-	      entries[0].file((file) => this._loadZip(file));
-	    } else {
-	      this._loadNextEntry(new Map(), entries);
-	    }
-	  }
-
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onDragover (e) {
-	    e.stopPropagation();
-	    e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
-	  }
-
-	  /**
-	   * @param  {Event} e
-	   */
-	  _onSelect (e) {
-	    this._emit('dropstart');
-
-	    // HTML file inputs do not seem to support folders, so assume this is a flat file list.
-	    const files = [].slice.call(this.inputEl.files);
-
-	    // Automatically decompress a zip archive if it is the only file given.
-	    if (files.length === 1 && this._isZip(files[0])) {
-	      this._loadZip(files[0]);
-	      return;
-	    }
-
-	    const fileMap = new Map();
-	    files.forEach((file) => fileMap.set(file.name, file));
-	    this._emit('drop', {files: fileMap});
-	  }
-
-	  /**
-	   * Iterates through a list of FileSystemEntry objects, creates the fileMap
-	   * tree, and emits the result.
-	   * @param  {Map<string, File>} fileMap
-	   * @param  {Array<FileSystemEntry>} entries
-	   */
-	  _loadNextEntry (fileMap, entries) {
-	    const entry = entries.pop();
-
-	    if (!entry) {
-	      this._emit('drop', {files: fileMap});
-	      return;
-	    }
-
-	    if (entry.isFile) {
-	      entry.file((file) => {
-	        fileMap.set(entry.fullPath, file);
-	        this._loadNextEntry(fileMap, entries);
-	      }, () => console.error('Could not load file: %s', entry.fullPath));
-	    } else if (entry.isDirectory) {
-	      // readEntries() must be called repeatedly until it stops returning results.
-	      // https://www.w3.org/TR/2012/WD-file-system-api-20120417/#the-directoryreader-interface
-	      // https://bugs.chromium.org/p/chromium/issues/detail?id=378883
-	      const reader = entry.createReader();
-	      const readerCallback = (newEntries) => {
-	        if (newEntries.length) {
-	          entries = entries.concat(newEntries);
-	          reader.readEntries(readerCallback);
-	        } else {
-	          this._loadNextEntry(fileMap, entries);
-	        }
-	      };
-	      reader.readEntries(readerCallback);
-	    } else {
-	      console.warn('Unknown asset type: ' + entry.fullPath);
-	      this._loadNextEntry(fileMap, entries);
-	    }
-	  }
 
 	  /**
 	   * Inflates a File in .ZIP format, creates the fileMap tree, and emits the
@@ -80326,13 +82673,32 @@ define('skylark-threegltfviewer/SimpleDropzone',[
 	      }
 	    };
 
-	    ZipLoader.unzip(file).then((archive) => {
-	      Object.keys(archive.files).forEach((path) => {
-	        if (path.match(/\/$/)) return;
-	        const fileName = path.replace(/^.*[\\\/]/, '');
-	        fileMap.set(path, new File([archive.files[path].buffer], fileName));
-	      });
-	      this._emit('drop', {files: fileMap, archive: file});
+	    var self = this;
+
+	    jszip(file).then((zip) => {
+            var defers = [];
+
+	     	zip.forEach((path,zipEntry) => {
+	        	//if (path.match(/\/$/)) return;
+	        	//const fileName = path.replace(/^.*[\\\/]/, '');
+	        	//fileMap.set(path, new File([archive.files[path].buffer], fileName));
+	        	var d = new Deferred();
+	          	zipEntry.async("arraybuffer").then(function(data){
+	            	if (!zipEntry.dir) {
+	             		//fileMap.set(zipEntry.name,new File([data],zipEntry.name,{
+	             		//	type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		//}));
+	             		fileMap.set(zipEntry.name,new Blob([data],{
+	             			type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
+	             		}));
+	            	} 
+             		d.resolve();
+	          	});
+	          	defers.push(d.promise);
+	      	});
+	      	Deferred.all(defers).then( () =>{
+	      		this.emit('drop', {files: fileMap, archive: file});
+	      	});
 	    });
 	  }
 
@@ -80349,7 +82715,7 @@ define('skylark-threegltfviewer/SimpleDropzone',[
 	   * @throws
 	   */
 	  _fail (message) {
-	    this._emit('droperror', {message: message});
+	    this.emit('droperror', {message: message});
 	  }
 	}
 
@@ -80396,10 +82762,16 @@ define('skylark-threegltfviewer/App',[
         }
 
         createDropzone() {
-            const dropCtrl = new SimpleDropzone(this.dropEl, this.inputEl);
-            dropCtrl.on('drop', ({files}) => this.load(files));
-            dropCtrl.on('dropstart', () => this.showSpinner());
-            dropCtrl.on('droperror', () => this.hideSpinner());
+            //const dropCtrl = new SimpleDropzone(this.dropEl, this.inputEl);
+            const dropCtrl = new SimpleDropzone(this.el.querySelector('.wrap'),{
+                selectors : {
+                    dropzone : '.dropzone',
+                    picker : '.upload-btn'
+                }
+            });
+            dropCtrl.on('drop', (e,{files}) => this.load(files));
+            dropCtrl.on('dropstart', (e) => this.showSpinner());
+            dropCtrl.on('droperror', (e) => this.hideSpinner());
         }
 
         createViewer() {
@@ -80415,13 +82787,15 @@ define('skylark-threegltfviewer/App',[
             let rootFile;
             let rootPath;
             Array.from(fileMap).forEach(([path, file]) => {
-                if (file.name.match(/\.(gltf|glb)$/)) {
+                //if (file.name.match(/\.(gltf|glb|3ds|obj)$/)) {
+                if (path.match(/\.(gltf|glb|3ds|obj)$/)) {
                     rootFile = file;
-                    rootPath = path.replace(file.name, '');
+                    //rootPath = path.replace(file.name, '');
+                    rootPath = "";
                 }
             });
             if (!rootFile) {
-                this.onError('No .gltf or .glb asset found.');
+                this.onError('No asset(.gltf,.glb,.3ds,.obj) found.');
             }
             this.view(rootFile, rootPath, fileMap);
         }

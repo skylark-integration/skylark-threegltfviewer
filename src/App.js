@@ -36,10 +36,16 @@ define([
         }
 
         createDropzone() {
-            const dropCtrl = new SimpleDropzone(this.dropEl, this.inputEl);
-            dropCtrl.on('drop', ({files}) => this.load(files));
-            dropCtrl.on('dropstart', () => this.showSpinner());
-            dropCtrl.on('droperror', () => this.hideSpinner());
+            //const dropCtrl = new SimpleDropzone(this.dropEl, this.inputEl);
+            const dropCtrl = new SimpleDropzone(this.el.querySelector('.wrap'),{
+                selectors : {
+                    dropzone : '.dropzone',
+                    picker : '.upload-btn'
+                }
+            });
+            dropCtrl.on('drop', (e,{files}) => this.load(files));
+            dropCtrl.on('dropstart', (e) => this.showSpinner());
+            dropCtrl.on('droperror', (e) => this.hideSpinner());
         }
 
         createViewer() {
