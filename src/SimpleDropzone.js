@@ -146,12 +146,7 @@ define([
 	        	var d = new Deferred();
 	          	zipEntry.async("arraybuffer").then(function(data){
 	            	if (!zipEntry.dir) {
-	             		//fileMap.set(zipEntry.name,new File([data],zipEntry.name,{
-	             		//	type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
-	             		//}));
-	             		fileMap.set(zipEntry.name,new Blob([data],{
-	             			type : zipEntry.name.match(/\.(png)$/) ? "image/png" : undefined
-	             		}));
+	             		fileMap.set(zipEntry.name,new Blob([data]));
 	            	} 
              		d.resolve();
 	          	});
